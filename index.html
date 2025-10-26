@@ -150,6 +150,28 @@
     const $counter = document.getElementById('counter'), $attrSearch = document.getElementById('attrSearch');
     const $onlyRequired = document.getElementById('onlyRequired'), $lang = document.getElementById('lang');
 
+    // --- 单个上传相关元素 ---
+    const offerId = document.getElementById('offerId');
+    const title = document.getElementById('title');
+    const priceEl = document.getElementById('price');
+    const currency = document.getElementById('currency');
+    const barcode = document.getElementById('barcode');
+    const depth = document.getElementById('depth');
+    const width = document.getElementById('width');
+    const height = document.getElementById('height');
+    const weight = document.getElementById('weight');
+    const primaryImage = document.getElementById('primaryImage');
+    const moreImages = document.getElementById('moreImages');
+    const singleDesc = document.getElementById('singleDesc');
+    const singleStatus = document.getElementById('singleStatus');
+    const singleResult = document.getElementById('singleResult');
+
+    // --- 批量上传相关元素 ---
+    const batchStatus = document.getElementById('batchStatus');
+    const batchResult = document.getElementById('batchResult');
+    const batchTbody = document.getElementById('batchTbody');
+    let batchRowCount = 0;
+
     $lang.addEventListener('change', () => (LANG = $lang.value));
 
     $btnPing.onclick = async () => {
@@ -226,14 +248,20 @@
       try {
         const offer_id = offerId.value.trim(), name = title.value.trim(), price = Number(priceEl.value || 0);
         if (!offer_id || !name || !price) return alert('Offer ID、标题、价格为必填！');
+        if (!currentC2) return alert('请先选择二级类目！');
+        
         const item = {
           offer_id, name, category_id: currentC2, description: singleDesc.value || '',
           price, currency_code: currency.value,
-          barcode: barcode.value || undefined,
-          depth: Number(depth.value), width: Number(width.value), height: Number(height.value),
-          dimension_unit: 'cm', weight: Number(weight.value), weight_unit: 'kg',
-          primary_image: primaryImage.value || undefined,
-          images: (primaryImage.value ? [primaryImage.value] : []).concat(
+          barcode: barcode.value.trim() || undefined,
+          depth: depth.value ? Number(depth.value) : undefined,
+          width: width.value ? Number(width.value) : undefined,
+          height: height.value ? Number(height.value) : undefined,
+          dimension_unit: 'cm',
+          weight: weight.value ? Number(weight.value) : undefined,
+          weight_unit: 'kg',
+          primary_image: primaryImage.value.trim() || undefined,
+          images: (primaryImage.value.trim() ? [primaryImage.value.trim()] : []).concat(
             (moreImages.value || '').split(/\n/).map(s => s.trim()).filter(Boolean)
           ).slice(0, 30).map(u => ({ file_name: u })),
           attributes: ATTR_ALL.map(a => {
@@ -241,13 +269,111 @@
             return val ? { attribute_id: a.id, values: [{ value: val }] } : null;
           }).filter(Boolean)
         };
+        
         const resp = await ozon('/v3/product/import', { items: [item] });
         singleStatus.textContent = '✅ 上传成功';
         singleResult.textContent = JSON.stringify(resp, null, 2);
       } catch (e) {
         singleStatus.textContent = '❌ ' + e.message;
+        singleResult.textContent = e.message;
       }
     };
+
+    // --- 清空单个表单 ---
+    document.getElementById('btnClearSingle').onclick = () => {
+      offerId.value = '';
+      title.value = '';
+      priceEl.value = '';
+      barcode.value = '';
+      depth.value = '';
+      width.value = '';
+      height.value = '';
+      weight.value = '';
+      primaryImage.value = '';
+      moreImages.value = '';
+      singleDesc.value = '';
+      singleStatus.textContent = '';
+      singleResult.textContent = '';
+      ATTR_ALL.forEach(a => {
+        const inp = document.getElementById('in-' + a.id);
+        if (inp) inp.value = '';
+      });
+    };
+
+    // --- 批量上传逻辑 ---
+    const createBatchRow = () => {
+      const id = ++batchRowCount;
+      const row = batchTbody.insertRow();
+      row.innerHTML = `
+        <td class="border px-2 py-2">${id}</td>
+        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="Offer ID" /></td>
+        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="标题" /></td>
+        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="number" placeholder="价格" /></td>
+        <td class="border px-2 py-2"><select class="w-full px-1 py-1 border border-gray-300 rounded"><option value="RUB">RUB</option><option value="CNY">CNY</option><option value="USD">USD</option></select></td>
+        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="条码" /></td>
+        <td class="border px-2 py-2"><input class="w-1/3 px-1 py-1 border border-gray-300 rounded" type="number" placeholder="长" /><input class="w-1/3 px-1 py-1 border border-gray-300 rounded" type="number" placeholder="宽" /><input class="w-1/3 px-1 py-1 border border-gray-300 rounded" type="number" placeholder="高" /></td>
+        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="number" placeholder="重量" /></td>
+        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="主图URL" /></td>
+        <td class="border px-2 py-2"><textarea class="w-full px-1 py-1 border border-gray-300 rounded text-xs" placeholder="多图URL&#10;每行一条" rows="2"></textarea></td>
+        <td class="border px-2 py-2"><button class="text-red-600 hover:underline" onclick="this.closest('tr').remove()">删除</button></td>
+      `;
+    };
+
+    document.getElementById('btnAddRow').onclick = createBatchRow;
+    document.getElementById('btnClearRows').onclick = () => { batchTbody.innerHTML = ''; batchRowCount = 0; batchStatus.textContent = ''; batchResult.textContent = ''; };
+
+    document.getElementById('btnUploadBatch').onclick = async () => {
+      if (!currentC2) return alert('请先选择二级类目！');
+      
+      const rows = batchTbody.querySelectorAll('tr');
+      if (rows.length === 0) return alert('请至少添加一行商品！');
+      
+      try {
+        batchStatus.textContent = '上传中...';
+        const items = Array.from(rows).map(row => {
+          const cells = row.querySelectorAll('input, select, textarea');
+          const fields = Array.from(cells);
+          const offer_id = fields[0].value.trim();
+          const name = fields[1].value.trim();
+          const price = Number(fields[2].value || 0);
+          if (!offer_id || !name || !price) return null;
+          
+          const imgUrls = fields[8].value ? [fields[8].value] : [];
+          const moreImgs = (fields[9].value || '').split(/\n/).map(s => s.trim()).filter(Boolean);
+          
+          return {
+            offer_id,
+            name,
+            category_id: currentC2,
+            description: '',
+            price,
+            currency_code: fields[3].value,
+            barcode: fields[4].value.trim() || undefined,
+            depth: fields[5].value ? Number(fields[5].value) : undefined,
+            width: fields[6].value ? Number(fields[6].value) : undefined,
+            height: fields[7].value ? Number(fields[7].value) : undefined,
+            dimension_unit: 'cm',
+            weight: fields[10].value ? Number(fields[10].value) : undefined,
+            weight_unit: 'kg',
+            primary_image: fields[8].value.trim() || undefined,
+            images: imgUrls.concat(moreImgs).slice(0, 30).map(u => ({ file_name: u })),
+            attributes: []
+          };
+        }).filter(Boolean);
+        
+        if (items.length === 0) return alert('没有有效的商品数据！');
+        
+        const resp = await ozon('/v3/product/import', { items });
+        batchStatus.textContent = `✅ 成功上传 ${items.length} 个商品`;
+        batchResult.textContent = JSON.stringify(resp, null, 2);
+      } catch (e) {
+        batchStatus.textContent = '❌ ' + e.message;
+        batchResult.textContent = e.message;
+      }
+    };
+
+    // 初始化添加一行
+    createBatchRow();
   </script>
 </body>
 </html>
