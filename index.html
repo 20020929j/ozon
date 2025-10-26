@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 <html lang="zh-Hans">
 <head>
-  <meta charset="UTF-8">
-  <title>Ozon 类目属性助手 v6.6（上传一体化修正版）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Ozon 类目属性助手 v6.7（上传整合优化稳定版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f5f5;
       margin: 20px;
-      background: #fafafa;
     }
-    h2 {
-      color: #333;
-      margin-bottom: 10px;
+    h1 {
+      color: #222;
     }
-    .section {
+    .toolbar {
       background: #fff;
+      padding: 10px;
       border-radius: 8px;
-      padding: 15px;
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
@@ -25,221 +24,162 @@
       font-size: 14px;
       padding: 6px 8px;
       margin: 4px;
-      border-radius: 4px;
+      border-radius: 5px;
       border: 1px solid #ccc;
-      width: calc(100% - 20px);
       box-sizing: border-box;
     }
     button {
       cursor: pointer;
     }
     .btn-primary {
-      background: #1677ff;
+      background-color: #1677ff;
       color: white;
       border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
     }
     .btn-danger {
-      background: #ff4d4f;
+      background-color: #ff4d4f;
       color: white;
       border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
     }
-    .btn-success {
-      background: #52c41a;
-      color: white;
-      border: none;
+    .section {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
     }
-    .inline {
-      display: inline-block;
-      margin-right: 10px;
-    }
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .row > div {
-      flex: 1;
-      min-width: 260px;
-    }
-    .status {
-      margin-left: 10px;
+    .required {
+      color: red;
       font-weight: bold;
     }
-    textarea {
-      height: 80px;
-    }
-    #resultBox {
+    .result {
       white-space: pre-wrap;
-      font-family: monospace;
-      background: #f6f6f6;
+      background: #fafafa;
       padding: 10px;
-      border-radius: 6px;
+      border-radius: 5px;
       border: 1px solid #ddd;
-      color: #444;
+      max-height: 200px;
+      overflow: auto;
     }
+    .success { color: green; }
+    .error { color: red; }
   </style>
 </head>
-
 <body>
-  <h2>📦 Ozon 类目属性助手 v6.6（商品上传一体化）</h2>
+  <h1>🧩 Ozon 类目属性助手 v6.7（上传整合优化版）</h1>
 
-  <div class="section">
-    <button id="verifyBtn" class="btn-success">🔗 验证 API 连接</button>
-    <span id="apiStatus" class="status">未连接</span>
-    <select id="langSelect" class="inline">
-      <option value="ZH_HANS">ZH_HANS（中文）</option>
+  <div class="toolbar">
+    <button id="checkApi" class="btn-primary">验证 API 连接</button>
+    <select id="language">
+      <option value="ZH_HANS">中文</option>
       <option value="RU">Русский</option>
     </select>
-    <button id="loadBtn" class="btn-primary inline">获取类目树</button>
-    <button id="clearCacheBtn" class="btn-danger inline">清除缓存</button>
+    <button id="getCategories" class="btn-primary">获取类目树</button>
+    <button id="clearCache" class="btn-danger">清除缓存</button>
+    <span id="statusText"></span>
+  </div>
+
+  <div class="toolbar">
+    <select id="cat1"><option>请选择一级类目</option></select>
+    <select id="cat2"><option>请选择二级类目</option></select>
+    <select id="cat3"><option>请选择三级类目</option></select>
   </div>
 
   <div class="section">
-    <div class="row">
-      <div><select id="catLevel1"><option>请选择一级类目</option></select></div>
-      <div><select id="catLevel2"><option>请选择二级类目</option></select></div>
-      <div><select id="catLevel3"><option>请选择三级类目</option></select></div>
-    </div>
-    <span id="catStatus" style="color:green; margin-left:10px;">等待加载...</span>
+    <h3>📦 商品上传</h3>
+    <input type="text" id="offer_id" placeholder="商品唯一标识 offer_id" style="width:48%">
+    <input type="text" id="name" placeholder="商品名称" style="width:48%"><br>
+    <input type="text" id="barcode" placeholder="条形码" style="width:48%">
+    <input type="number" id="price" placeholder="价格 (数字)" style="width:48%"><br>
+    <select id="currency" style="width:48%">
+      <option value="RUB">RUB</option>
+      <option value="CNY">CNY</option>
+      <option value="USD">USD</option>
+    </select>
+    <input type="number" id="vat" placeholder="增值税率 (0 或 20)" style="width:48%"><br>
+    <input type="number" id="depth" placeholder="深度 cm" style="width:31%">
+    <input type="number" id="width" placeholder="宽度 cm" style="width:31%">
+    <input type="number" id="height" placeholder="高度 cm" style="width:31%"><br>
+    <input type="number" id="weight" placeholder="重量 kg" style="width:31%"><br>
+    <textarea id="images" placeholder="图片链接（每行一张，最多30张）" style="width:98%;height:100px;"></textarea><br>
+    <button id="uploadBtn" class="btn-primary">🚀 发布商品</button>
   </div>
 
-  <div class="section">
-    <h3>🧩 商品上传</h3>
-    <div class="row">
-      <div><input id="offerId" placeholder="商品唯一标识 offer_id"></div>
-      <div><input id="name" placeholder="商品名称"></div>
-    </div>
-    <div class="row">
-      <div><input id="barcode" placeholder="条形码"></div>
-      <div><input id="price" placeholder="价格（数字）" type="number"></div>
-    </div>
-    <div class="row">
-      <div>
-        <select id="currency">
-          <option value="RUB">RUB</option>
-          <option value="CNY">CNY</option>
-          <option value="USD">USD</option>
-        </select>
-      </div>
-      <div><input id="vat" placeholder="增值税率（0 或 20）" type="number"></div>
-    </div>
-    <div class="row">
-      <div><input id="depth" placeholder="深度 cm" type="number"></div>
-      <div><input id="width" placeholder="宽度 cm" type="number"></div>
-      <div><input id="height" placeholder="高度 cm" type="number"></div>
-      <div><input id="weight" placeholder="重量 kg" type="number"></div>
-    </div>
-    <textarea id="images" placeholder="图片链接（每行一张，最多30张）"></textarea>
-    <button id="uploadBtn" class="btn-success">🚀 发布商品</button>
-    <div id="resultBox"></div>
-  </div>
+  <div id="resultBox" class="result"></div>
 
   <script>
-    let categoryTree = {};
-
-    // 加载类目树
-    async function loadCategories() {
-      const s1 = document.getElementById("catLevel1");
-      const s2 = document.getElementById("catLevel2");
-      const s3 = document.getElementById("catLevel3");
-      s1.innerHTML = "<option>加载中...</option>";
-      s2.innerHTML = "<option>请选择二级类目</option>";
-      s3.innerHTML = "<option>请选择三级类目</option>";
-
-      try {
-        const res = await fetch("/.netlify/functions/get-category-tree");
-        const data = await res.json();
-        categoryTree = data.result || {};
-        s1.innerHTML = "<option value=''>请选择一级类目</option>";
-        Object.keys(categoryTree).forEach(k => {
-          const opt = document.createElement("option");
-          opt.value = k;
-          opt.textContent = k;
-          s1.appendChild(opt);
-        });
-        document.getElementById("catStatus").textContent = "✅ 类目树加载成功";
-      } catch (e) {
-        document.getElementById("catStatus").textContent = "❌ 加载失败";
-        console.error(e);
-      }
-
-      s1.onchange = function() {
-        s2.innerHTML = "<option>请选择二级类目</option>";
-        s3.innerHTML = "<option>请选择三级类目</option>";
-        const children = categoryTree[this.value]?.children || [];
-        children.forEach(sub => {
-          const opt = document.createElement("option");
-          opt.value = sub.name;
-          opt.textContent = sub.name;
-          s2.appendChild(opt);
-        });
-      };
-
-      s2.onchange = function() {
-        s3.innerHTML = "<option>请选择三级类目</option>";
-        const parent = categoryTree[s1.value];
-        const sub = parent?.children.find(x => x.name === s2.value);
-        (sub?.children || []).forEach(c => {
-          const opt = document.createElement("option");
-          opt.value = c.id;
-          opt.textContent = c.name;
-          s3.appendChild(opt);
-        });
-      };
-    }
+    const apiBase = '/.netlify/functions';
 
     // 验证 API
-    document.getElementById("verifyBtn").onclick = async () => {
-      try {
-        const res = await fetch("/.netlify/functions/check-api");
-        const data = await res.json();
-        document.getElementById("apiStatus").textContent = "✅ 连接正常，共 " + data.count + " 类目";
-      } catch (e) {
-        document.getElementById("apiStatus").textContent = "❌ 连接异常";
+    document.getElementById('checkApi').onclick = async () => {
+      document.getElementById('statusText').textContent = '正在验证...';
+      const res = await fetch(`${apiBase}/check-api`);
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('statusText').textContent = '✅ 连接成功';
+        document.getElementById('statusText').className = 'success';
+      } else {
+        document.getElementById('statusText').textContent = '❌ ' + (data.error || '连接失败');
+        document.getElementById('statusText').className = 'error';
       }
-    };
-
-    // 清除缓存
-    document.getElementById("clearCacheBtn").onclick = () => {
-      categoryTree = {};
-      localStorage.clear();
-      document.getElementById("catStatus").textContent = "缓存已清除";
     };
 
     // 获取类目树
-    document.getElementById("loadBtn").onclick = loadCategories;
-
-    // 上传商品
-    document.getElementById("uploadBtn").onclick = async () => {
-      const body = {
-        items: [{
-          offer_id: document.getElementById("offerId").value,
-          name: document.getElementById("name").value,
-          barcode: document.getElementById("barcode").value,
-          price: parseFloat(document.getElementById("price").value || 0),
-          currency_code: document.getElementById("currency").value,
-          vat: parseInt(document.getElementById("vat").value || 0),
-          depth: parseFloat(document.getElementById("depth").value || 0),
-          width: parseFloat(document.getElementById("width").value || 0),
-          height: parseFloat(document.getElementById("height").value || 0),
-          weight: parseFloat(document.getElementById("weight").value || 0),
-          images: document.getElementById("images").value.split("\n").filter(Boolean),
-          category_id: document.getElementById("catLevel3").value
-        }]
-      };
-      try {
-        const res = await fetch("/.netlify/functions/upload-product", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        document.getElementById("resultBox").textContent = JSON.stringify(data, null, 2);
-      } catch (e) {
-        document.getElementById("resultBox").textContent = "❌ 上传失败：" + e.message;
+    document.getElementById('getCategories').onclick = async () => {
+      const lang = document.getElementById('language').value;
+      const res = await fetch(`${apiBase}/get-category-tree`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: lang })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert('❌ 获取类目失败: ' + data.error);
+        return;
       }
+      const cat1 = document.getElementById('cat1');
+      cat1.innerHTML = '<option>请选择一级类目</option>';
+      data.result.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.category_id;
+        opt.textContent = item.name;
+        cat1.appendChild(opt);
+      });
+      alert('✅ 类目树加载成功');
     };
 
+    // 发布商品
+    document.getElementById('uploadBtn').onclick = async () => {
+      const body = {
+        items: [{
+          offer_id: document.getElementById('offer_id').value,
+          name: document.getElementById('name').value,
+          barcode: document.getElementById('barcode').value,
+          price: Number(document.getElementById('price').value),
+          currency_code: document.getElementById('currency').value,
+          vat: Number(document.getElementById('vat').value),
+          depth: Number(document.getElementById('depth').value),
+          width: Number(document.getElementById('width').value),
+          height: Number(document.getElementById('height').value),
+          weight: Number(document.getElementById('weight').value),
+          images: document.getElementById('images').value.split('\n').filter(Boolean)
+        }]
+      };
+
+      document.getElementById('resultBox').textContent = '⏳ 上传中...';
+      const res = await fetch(`${apiBase}/upload-product`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      document.getElementById('resultBox').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('resultBox').className = data.success ? 'result success' : 'result error';
+    };
   </script>
 </body>
 </html>
