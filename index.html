@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ozon 类目选择助手 v3</title>
+  <title>Ozon 类目树 - 中文三级下拉选择</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -30,7 +30,7 @@
   </div>
 
   <script>
-    // 后端代理请求
+    // 代理请求
     const proxy = async (endpoint, body = {}) => {
       const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}`, {
         method: 'POST',
@@ -41,6 +41,7 @@
       return { ok: res.ok, status: res.status, data };
     };
 
+    // 填充下拉选项
     const fillOptions = (select, list, labelKey, idKey, placeholder) => {
       select.innerHTML = `<option value="">${placeholder}</option>`;
       list.forEach(item => {
@@ -61,8 +62,11 @@
       const { ok, data } = await proxy("/v1/description-category/tree", { language: lang });
       out.textContent = JSON.stringify(data, null, 2);
 
-      if (!ok || !data?.result) {
-        status.textContent = "❌ 获取失败，请检查代理或 API KEY";
+      // ✅ 修正：兼容 data.data.result 层级
+      const result = data?.data?.result || data?.result;
+
+      if (!ok || !result) {
+        status.innerHTML = "❌ 获取失败，请检查代理或 API KEY";
         return;
       }
 
@@ -72,20 +76,20 @@
       const level2 = document.getElementById("level2");
       const level3 = document.getElementById("level3");
 
-      fillOptions(level1, data.result, "category_name", "description_category_id", "选择一级类目");
+      fillOptions(level1, result, "category_name", "description_category_id", "选择一级类目");
       fillOptions(level2, [], "category_name", "description_category_id", "选择二级类目");
       fillOptions(level3, [], "type_name", "type_id", "选择三级类目");
 
       // 一级联动
       level1.onchange = () => {
-        const first = data.result.find(x => x.description_category_id == level1.value);
+        const first = result.find(x => x.description_category_id == level1.value);
         fillOptions(level2, first?.children || [], "category_name", "description_category_id", "选择二级类目");
         fillOptions(level3, [], "type_name", "type_id", "选择三级类目");
       };
 
       // 二级联动
       level2.onchange = () => {
-        const first = data.result.find(x => x.description_category_id == level1.value);
+        const first = result.find(x => x.description_category_id == level1.value);
         const second = first?.children?.find(y => y.description_category_id == level2.value);
         fillOptions(level3, second?.children || [], "type_name", "type_id", "选择三级类目");
       };
