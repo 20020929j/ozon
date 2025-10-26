@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+body: JSON.stringify(body)
+});
+const data = await res.json().catch(() => ({}));
+return { ok: res.ok, status: res.status, data };
+};
+
+
+// 测试代理（不会请求 Ozon，仅返回 "ok"）
+document.getElementById('btn-ping').addEventListener('click', async () => {
+const out = document.getElementById('ping-out');
+out.textContent = '测试中…';
+try {
+const res = await fetch('/api/ozon-proxy');
+const data = await res.json();
+out.textContent = JSON.stringify(data, null, 2);
+} catch (e) {
+out.textContent = e.message || String(e);
+}
+});
+
+
+// ① 类目树
+document.getElementById('btn-tree').addEventListener('click', async () => {
+const out = document.getElementById('tree-out');
+out.textContent = '请求中…';
+const language = document.getElementById('lang').value;
+const body = { language };
+const { ok, status, data } = await proxy('/v2/description-category/tree', body);
+out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+});
+
+
+// ② 类目属性
+document.getElementById('btn-attr').addEventListener('click', async () => {
+const out = document.getElementById('attr-out');
+out.textContent = '请求中…';
+const category_id = Number(document.getElementById('cat-id').value || 0);
+const language = document.getElementById('attr-lang').value;
+const body = { category_id, language };
+const { ok, status, data } = await proxy('/v1/description-category/attribute', body);
+out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+});
+
+
+// ③ 上传商品
+document.getElementById('btn-upload').addEventListener('click', async () => {
+const out = document.getElementById('upload-out');
+out.textContent = '上传中…';
+try {
+const body = JSON.parse(document.getElementById('product-json').value || '{}');
+const { ok, status, data } = await proxy('/v3/product/import', body);
+out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+} catch (e) {
+out.textContent = 'JSON 解析失败：' + (e.message || e);
+}
+});
+
+
+document.getElementById('btn-format').addEventListener('click', () => {
+const ta = document.getElementById('product-json');
+try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); } catch {}
+});
+
+
+// ④ 自定义请求
+document.getElementById('btn-custom').addEventListener('click', async () => {
+const out = document.getElementById('custom-out');
+out.textContent = '请求中…';
+const endpoint = document.getElementById('custom-endpoint').value.trim();
+const query = document.getElementById('custom-query').value.trim();
+let body = {};
+try { body = JSON.parse(document.getElementById('custom-body').value || '{}'); } catch (e) {
+out.textContent = 'JSON 解析失败：' + (e.message || e);
+return;
+}
+const { ok, status, data } = await proxy(endpoint, body, query);
+out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+});
+</script>
+</body>
+</html>
