@@ -1,4 +1,3 @@
-// ✅ 使用 ESM 模块语法（node-fetch v3）
 import fetch from "node-fetch";
 
 export const handler = async (event) => {
@@ -13,7 +12,6 @@ export const handler = async (event) => {
       };
     }
 
-    // 🔗 调用 Ozon API
     const response = await fetch("https://api-seller.ozon.ru" + endpoint, {
       method: body ? "POST" : "GET",
       headers: {
@@ -32,10 +30,7 @@ export const handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        ok: false,
-        error: error.message
-      })
+      body: JSON.stringify({ ok: false, error: error.message })
     };
   }
 };
