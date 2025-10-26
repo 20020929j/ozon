@@ -118,11 +118,11 @@
   $attrLoading.classList.add("hidden");
   $attrList.classList.remove("hidden");
   $counter.textContent = `共 ${ATTRS.length} 个属性`;
-
   $attrCards.innerHTML = "";
+
   for (const a of ATTRS) {
     const card = document.createElement("div");
-    card.className = `border rounded p-3 ${a.is_required ? "required-card" : "optional-card"}`;
+    card.className = `border rounded p-3 mb-2 ${a.is_required ? "required-card" : "optional-card"}`;
     card.innerHTML = `
       <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''}</div>
       <div class="text-xs text-gray-500 mb-1">${a.description || ''}</div>
@@ -130,7 +130,7 @@
     `;
     $attrCards.appendChild(card);
 
-    // 如果存在字典（dictionary_id）
+    // 如果存在字典
     if (a.dictionary_id > 0) {
       try {
         const vals = (await ozon("/v1/description-category/attribute/values", {
@@ -142,30 +142,60 @@
         })).result || [];
 
         const container = document.getElementById(`input-${a.id}`);
-        container.innerHTML = `
-          <input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full mb-1" placeholder="已选值..." />
-          <input type="text" id="search-${a.id}" class="select-search" placeholder="搜索字典值..." />
-          <select id="dict-${a.id}" class="border rounded px-2 py-1 text-sm w-full" size="6">
-            ${vals.map(v => `<option value="${v.value}">${v.value}</option>`).join("")}
-          </select>
-        `;
 
-        const search = document.getElementById(`search-${a.id}`);
-        const sel = document.getElementById(`dict-${a.id}`);
-        const input = document.getElementById(`attr-${a.id}`);
+        // 一体化输入框 + 下拉选项
+        const wrapper = document.createElement("div");
+        wrapper.className = "relative";
 
-        // 🔍 搜索过滤功能
-        search.addEventListener("input", () => {
-          const term = search.value.toLowerCase();
-          Array.from(sel.options).forEach(opt => {
-            opt.style.display = opt.text.toLowerCase().includes(term) ? "block" : "none";
-          });
+        const input = document.createElement("input");
+        input.id = `attr-${a.id}`;
+        input.className = "border rounded px-2 py-1 text-sm w-full";
+        input.placeholder = "输入或选择...";
+        wrapper.appendChild(input);
+
+        const dropdown = document.createElement("div");
+        dropdown.className = "absolute z-10 bg-white border rounded mt-1 shadow-md w-full max-h-48 overflow-auto hidden";
+        dropdown.style.fontSize = "13px";
+        wrapper.appendChild(dropdown);
+
+        container.innerHTML = "";
+        container.appendChild(wrapper);
+
+        // 渲染下拉选项
+        function renderOptions(filter = "") {
+          dropdown.innerHTML = "";
+          const filtered = vals.filter(v => v.value.toLowerCase().includes(filter.toLowerCase()));
+          if (filtered.length === 0) {
+            dropdown.innerHTML = `<div class="p-2 text-gray-400">无匹配项</div>`;
+          } else {
+            filtered.forEach(v => {
+              const opt = document.createElement("div");
+              opt.className = "p-2 hover:bg-blue-100 cursor-pointer";
+              opt.textContent = v.value;
+              opt.addEventListener("click", () => {
+                input.value = v.value;
+                dropdown.classList.add("hidden");
+              });
+              dropdown.appendChild(opt);
+            });
+          }
+        }
+
+        // 聚焦时展开
+        input.addEventListener("focus", () => {
+          renderOptions();
+          dropdown.classList.remove("hidden");
         });
 
-        // ✅ 点击选项 → 自动填入输入框
-        sel.addEventListener("change", () => {
-          const selectedValues = Array.from(sel.selectedOptions).map(opt => opt.value);
-          input.value = selectedValues.join(", ");
+        // 输入时筛选
+        input.addEventListener("input", () => {
+          renderOptions(input.value);
+          dropdown.classList.remove("hidden");
+        });
+
+        // 失焦时隐藏（稍延迟防止点击失效）
+        input.addEventListener("blur", () => {
+          setTimeout(() => dropdown.classList.add("hidden"), 200);
         });
 
       } catch (e) {
@@ -180,7 +210,9 @@
   }
 }
 
+
   </script>
 </body>
 </html>
+
 
