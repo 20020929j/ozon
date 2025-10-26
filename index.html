@@ -16,7 +16,7 @@
       <button id="btnPing" class="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-800">
         🔍 验证 API 连接
       </button>
-      <span id="pingStatus" class="text-sm text-gray-600"></span>
+      <span id="pingStatus" class="text-sm whitespace-pre-wrap"></span>
 
       <label class="ml-6 text-sm">语言：</label>
       <select id="lang" class="border rounded px-3 py-2">
@@ -182,7 +182,7 @@
         $pingStatus.textContent = apiStatus.message;
         $pingStatus.className = 'text-sm text-green-600';
       } else if (!apiStatus.proxy) {
-        $pingStatus.textContent = '❌ 代理服务器未就绪';
+        $pingStatus.textContent = apiStatus.message;
         $pingStatus.className = 'text-sm text-red-600';
       } else {
         $pingStatus.textContent = '❌ API 连接异常: ' + apiStatus.message;
@@ -197,13 +197,33 @@
       // 检测代理
       try {
         const proxyRes = await fetch('/api/ozon-proxy');
+        
+        if (!proxyRes.ok) {
+          throw new Error(`HTTP ${proxyRes.status}: ${proxyRes.statusText}`);
+        }
+        
         const proxyOk = await proxyRes.json();
-        if (!proxyOk.ok) throw new Error(proxyOk.error || '代理返回异常');
+        
+        if (!proxyOk.ok) {
+          const errorMsg = proxyOk.error || proxyOk.msg || '代理返回异常';
+          apiStatus.proxy = false;
+          apiStatus.message = errorMsg.includes('OZON') 
+            ? '❌ 缺少环境变量（OZON_CLIENT_ID 或 OZON_API_KEY）' 
+            : '代理错误: ' + errorMsg;
+          updateStatus();
+          return;
+        }
+        
         apiStatus.proxy = true;
-        apiStatus.message = '✅ 代理就绪';
+        apiStatus.message = proxyOk.msg || '✅ 代理就绪';
       } catch (e) {
         apiStatus.proxy = false;
-        apiStatus.message = '代理连接失败: ' + e.message;
+        const errorMsg = e.message || '未知错误';
+        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('Network')) {
+          apiStatus.message = '❌ 代理服务器无法访问。请检查环境变量配置（OZON_CLIENT_ID 和 OZON_API_KEY）';
+        } else {
+          apiStatus.message = '代理连接失败: ' + errorMsg;
+        }
         updateStatus();
         return;
       }
