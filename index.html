@@ -137,24 +137,74 @@
     };
 
     // 渲染属性
-    function renderAttrs() {
-      $('attrList').classList.remove('hidden');
-      $('attrLoading').classList.add('hidden');
-      ATTRS.sort((a, b) => b.is_required - a.is_required);
-      $('attrCards').innerHTML = ATTRS.map(a => `
-        <div class="p-3 rounded border ${a.is_required ? 'bg-red-50 border-red-300' : 'bg-gray-50'}">
-          <div class="flex justify-between"><b>${a.name}</b>${a.is_required ? '<span class="text-red-500">(必填)</span>' : ''}</div>
-          ${a.dictionary_id > 0
-            ? `<input list="dict-${a.id}" id="attr-${a.id}" class="border w-full px-2 py-1 mt-1 rounded" placeholder="搜索并选择..." />
-               <datalist id="dict-${a.id}"></datalist>
-               <script>ozon('/v1/description-category/attribute/values',{attribute_id:${a.id},description_category_id:${$('c2').value},type_id:${$('c3').value},language:'${$('lang').value}'}).then(r=>{
-                 const d=document.getElementById('dict-${a.id}');
-                 d.innerHTML=r.result.map(v=>'<option value="'+v.value+'">').join('');
-               });<\/script>`
-            : `<input id="attr-${a.id}" class="border w-full px-2 py-1 mt-1 rounded" placeholder="输入值..." />`}
-        </div>
-      `).join('');
+   // ------------------- 属性渲染核心函数（v6.6 智能属性稳定版） -------------------
+function renderAttrs(attributes) {
+  const container = document.getElementById("attrsContainer");
+  container.innerHTML = "";
+
+  if (!attributes || attributes.length === 0) {
+    container.innerHTML = `<p style="color:#999;text-align:center;">尚未加载属性...</p>`;
+    return;
+  }
+
+  // 先把必填项排在前面
+  attributes.sort((a, b) => (b.is_required === true) - (a.is_required === true));
+
+  for (const attr of attributes) {
+    const block = document.createElement("div");
+    block.className = "attr-block";
+    block.style.marginBottom = "12px";
+    block.style.border = attr.is_required ? "1px solid #f99" : "1px solid #ccc";
+    block.style.padding = "10px";
+    block.style.borderRadius = "6px";
+    block.style.backgroundColor = attr.is_required ? "#fff7f7" : "#f9f9f9";
+
+    const title = document.createElement("label");
+    title.style.fontWeight = "bold";
+    title.innerHTML = `${attr.name} ${attr.is_required ? '<span style="color:red">(必填)</span>' : ''}`;
+    block.appendChild(title);
+
+    // 三合一输入区
+    const inputWrapper = document.createElement("div");
+    inputWrapper.style.marginTop = "6px";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "输入或选择...";
+    input.style.width = "100%";
+    input.style.padding = "6px 8px";
+    input.style.border = "1px solid #ccc";
+    input.style.borderRadius = "4px";
+    input.dataset.attrId = attr.id;
+    input.dataset.attrName = attr.name;
+
+    inputWrapper.appendChild(input);
+    block.appendChild(inputWrapper);
+
+    // 如果该属性有字典值
+    if (attr.dictionary && attr.dictionary.length > 0) {
+      const datalist = document.createElement("datalist");
+      datalist.id = `dict-${attr.id}`;
+      attr.dictionary.forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        datalist.appendChild(option);
+      });
+      input.setAttribute("list", datalist.id);
+      block.appendChild(datalist);
+
+      // 支持快速搜索与自动选择
+      input.addEventListener("input", e => {
+        const val = e.target.value.toLowerCase();
+        const matched = attr.dictionary.find(opt => opt.value.toLowerCase() === val);
+        if (matched) input.value = matched.value;
+      });
     }
+
+    container.appendChild(block);
+  }
+}
+
 
     // 上传商品
     $('btnUpload').onclick = async () => {
@@ -192,3 +242,4 @@
   </script>
 </body>
 </html>
+
