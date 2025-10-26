@@ -1,44 +1,30 @@
-export async function handler(event) {
-  const { endpoint } = event.queryStringParameters;
-  const body = event.body ? JSON.parse(event.body) : null;
+// ✅ Node Fetch v2 写法
+const fetch = require('node-fetch');
 
-  const clientId = process.env.OZON_CLIENT_ID;
-  const apiKey = process.env.OZON_API_KEY;
-
-  if (!clientId || !apiKey) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        ok: false,
-        error: "缺少 OZON_CLIENT_ID 或 OZON_API_KEY 环境变量",
-      }),
-    };
-  }
-
+exports.handler = async function (event, context) {
   try {
-    const res = await fetch(`https://api-seller.ozon.ru${endpoint}`, {
-      method: "POST",
+    const { endpoint } = event.queryStringParameters;
+    const body = event.body ? JSON.parse(event.body) : null;
+
+    const resp = await fetch('https://api-seller.ozon.ru' + endpoint, {
+      method: body ? 'POST' : 'GET',
       headers: {
-        "Client-Id": clientId,
-        "Api-Key": apiKey,
-        "Content-Type": "application/json",
+        'Client-Id': process.env.OZON_CLIENT_ID,
+        'Api-Key': process.env.OZON_API_KEY,
+        'Content-Type': 'application/json'
       },
-      body: body ? JSON.stringify(body) : "{}",
+      body: body ? JSON.stringify(body) : undefined
     });
 
-    const data = await res.json();
-
+    const data = await resp.json();
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, data }),
+      body: JSON.stringify({ ok: true, data })
     };
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        ok: false,
-        error: `请求 Ozon API 出错: ${err.message}`,
-      }),
+      body: JSON.stringify({ ok: false, error: err.message })
     };
   }
-}
+};
