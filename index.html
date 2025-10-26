@@ -2,19 +2,24 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>Ozon 类目属性助手 v6.1（上传商品 + 可填写属性）</title>
+  <title>Ozon 类目属性助手 v6.2（智能属性优化版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .required-card { background-color: #fff5f5; border-left: 4px solid #f87171; }
+    .optional-card { background-color: #f9fafb; }
+    .select-search { border: 1px solid #d1d5db; border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.25rem; width: 100%; }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-7xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-4">🛒 Ozon 类目属性助手 v6.1（上传商品 + 可填写属性）</h1>
+    <h1 class="text-2xl font-bold mb-4">🧩 Ozon 类目属性助手 v6.2（智能属性优化版）</h1>
 
-    <!-- 顶部栏 -->
+    <!-- 顶部控制区 -->
     <div class="flex flex-wrap gap-3 mb-4 items-center">
       <button id="btnPing" class="px-4 py-2 rounded bg-gray-700 text-white">🔗 验证 API 连接</button>
       <span id="pingStatus" class="text-sm text-gray-600"></span>
-      <label class="ml-4">语言：</label>
+      <label>语言：</label>
       <select id="lang" class="border rounded px-2 py-1">
         <option value="ZH_HANS">ZH_HANS（中文）</option>
         <option value="RU">RU（俄语）</option>
@@ -22,7 +27,6 @@
       </select>
       <button id="btnLoadTree" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">获取类目树</button>
       <button id="btnForceReload" class="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700">清除缓存</button>
-      <label class="ml-4 inline-flex items-center"><input id="onlyRequired" type="checkbox" class="mr-1"/>仅显示必填项</label>
     </div>
 
     <!-- 类目三级 -->
@@ -45,47 +49,11 @@
         <div id="attrCards" class="grid gap-3"></div>
       </div>
     </div>
-
-    <!-- 商品上传 -->
-    <div class="bg-white p-6 rounded-xl shadow">
-      <h2 class="text-lg font-semibold mb-3">📦 商品上传</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input id="offerId" placeholder="商品唯一标识 offer_id" class="border rounded px-3 py-2"/>
-        <input id="productName" placeholder="商品名称" class="border rounded px-3 py-2"/>
-        <input id="barcode" placeholder="条形码" class="border rounded px-3 py-2"/>
-        <input id="price" placeholder="价格（数字）" class="border rounded px-3 py-2"/>
-        <select id="currency" class="border rounded px-3 py-2">
-          <option value="RUB">RUB</option><option value="CNY">CNY</option><option value="USD">USD</option>
-        </select>
-        <input id="vat" placeholder="增值税率（如 0 或 20）" class="border rounded px-3 py-2"/>
-        <input id="depth" placeholder="深度 cm" class="border rounded px-3 py-2"/>
-        <input id="width" placeholder="宽度 cm" class="border rounded px-3 py-2"/>
-        <input id="height" placeholder="高度 cm" class="border rounded px-3 py-2"/>
-        <input id="weight" placeholder="重量 kg" class="border rounded px-3 py-2"/>
-      </div>
-
-      <div class="mt-4">
-        <label class="font-medium">📷 图片链接（每行一张，最多30张）</label>
-        <textarea id="images" rows="3" class="w-full border rounded px-3 py-2 text-sm mt-1"></textarea>
-        <label class="font-medium mt-3 block">🌟 主图链接</label>
-        <input id="primaryImage" class="border rounded px-3 py-2 w-full text-sm"/>
-      </div>
-
-      <div class="mt-4">
-        <label class="font-medium">🎬 视频链接</label>
-        <textarea id="videos" rows="2" class="w-full border rounded px-3 py-2 text-sm mt-1"></textarea>
-        <label class="font-medium mt-3 block">📝 视频名称</label>
-        <textarea id="videoNames" rows="2" class="w-full border rounded px-3 py-2 text-sm mt-1"></textarea>
-      </div>
-
-      <button id="btnUpload" class="mt-5 px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">🚀 上传商品</button>
-      <pre id="uploadResult" class="bg-gray-100 p-3 mt-3 rounded text-sm overflow-auto"></pre>
-    </div>
   </div>
 
   <script>
     const ozon = async (endpoint, body = null) => {
-      const opts = body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {method: "GET"};
+      const opts = body ? { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : { method: "GET" };
       const res = await fetch("/api/ozon-proxy?endpoint=" + encodeURIComponent(endpoint), opts);
       const data = await res.json();
       if (!res.ok || data.ok === false) throw new Error(data.error || JSON.stringify(data));
@@ -139,92 +107,60 @@
           language: LANG
         });
         ATTRS = resp.result || [];
+        ATTRS.sort((a,b) => b.is_required - a.is_required); // ✅ 必填项优先
         renderAttrs();
       } catch (e) {
         $attrLoading.textContent = "❌ 加载失败：" + e.message;
       }
     };
 
-    function renderAttrs() {
+    async function renderAttrs() {
       $attrLoading.classList.add("hidden");
       $attrList.classList.remove("hidden");
       $counter.textContent = `共 ${ATTRS.length} 个属性`;
 
-      $attrCards.innerHTML = ATTRS.map(a => `
-        <div class="border rounded p-2">
+      $attrCards.innerHTML = "";
+      for (const a of ATTRS) {
+        const card = document.createElement("div");
+        card.className = `border rounded p-3 ${a.is_required ? "required-card" : "optional-card"}`;
+        card.innerHTML = `
           <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''}</div>
-          <div class="text-xs text-gray-500">${a.description || ''}</div>
-          ${a.dictionary_id > 0
-            ? `<button data-dict="${a.id}" class="text-xs text-blue-600 mt-1 underline">加载选项</button>
-               <select id="dict-${a.id}" class="hidden border rounded px-2 py-1 text-sm mt-1 w-full"></select>`
-            : `<input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm mt-1 w-full" placeholder="输入值..."/>`}
-        </div>`).join("");
+          <div class="text-xs text-gray-500 mb-1">${a.description || ''}</div>
+          <div id="input-${a.id}">加载中...</div>
+        `;
+        $attrCards.appendChild(card);
 
-      document.querySelectorAll("[data-dict]").forEach(btn => {
-        btn.onclick = async () => {
-          const id = btn.dataset.dict;
-          const sel = document.getElementById("dict-" + id);
-          btn.textContent = "加载中...";
+        if (a.dictionary_id > 0) {
+          // ✅ 自动加载字典
           try {
             const vals = (await ozon("/v1/description-category/attribute/values", {
-              attribute_id: Number(id),
+              attribute_id: Number(a.id),
               description_category_id: Number($c2.value),
               type_id: Number($c3.value),
               limit: 2000,
               language: LANG
             })).result || [];
-            sel.innerHTML = `<option value="">请选择</option>` + vals.map(v => `<option value="${v.value}">${v.value}</option>`).join("");
-            btn.remove(); sel.classList.remove("hidden");
-          } catch (e) {
-            btn.textContent = "加载失败";
+            const container = document.getElementById(`input-${a.id}`);
+            container.innerHTML = `
+              <input type="text" id="search-${a.id}" class="select-search" placeholder="搜索..."/>
+              <select id="dict-${a.id}" class="border rounded px-2 py-1 text-sm w-full" size="6">
+                ${vals.map(v => `<option value="${v.value}">${v.value}</option>`).join("")}
+              </select>`;
+            const search = document.getElementById(`search-${a.id}`);
+            const sel = document.getElementById(`dict-${a.id}`);
+            search.addEventListener("input", () => {
+              const term = search.value.toLowerCase();
+              Array.from(sel.options).forEach(opt => {
+                opt.style.display = opt.text.toLowerCase().includes(term) ? "block" : "none";
+              });
+            });
+          } catch {
+            document.getElementById(`input-${a.id}`).innerHTML = `<input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full" placeholder="输入值..."/>`;
           }
-        };
-      });
-    }
-
-    // ✅ 上传商品
-    document.getElementById("btnUpload").onclick = async () => {
-      const out = document.getElementById("uploadResult");
-      out.textContent = "正在上传...";
-      try {
-        const payload = buildProductPayload();
-        const resp = await ozon("/v3/product/import", payload);
-        out.textContent = JSON.stringify(resp, null, 2);
-      } catch (e) {
-        out.textContent = "❌ 上传失败：" + e.message;
+        } else {
+          document.getElementById(`input-${a.id}`).innerHTML = `<input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full" placeholder="输入值..."/>`;
+        }
       }
-    };
-
-    // 构造商品体
-    function buildProductPayload() {
-      const attrValues = ATTRS.map(a => {
-        const val = a.dictionary_id > 0
-          ? document.getElementById("dict-" + a.id)?.value
-          : document.getElementById("attr-" + a.id)?.value;
-        return val ? { id: a.id, values: [{ value: val }] } : null;
-      }).filter(x => x);
-
-      return {
-        items: [
-          {
-            offer_id: offerId.value,
-            name: productName.value,
-            barcode: barcode.value,
-            price: parseFloat(price.value),
-            currency_code: currency.value,
-            vat: vat.value,
-            depth: parseFloat(depth.value),
-            width: parseFloat(width.value),
-            height: parseFloat(height.value),
-            dimension_unit: "cm",
-            weight: parseFloat(weight.value),
-            weight_unit: "kg",
-            images: images.value.split("\n").filter(x => x).map(i => ({ file_name: i })),
-            primary_image: primaryImage.value ? { file_name: primaryImage.value } : undefined,
-            attributes: attrValues
-          }
-        ]
-      };
     }
   </script>
 </body>
