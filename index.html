@@ -1,4 +1,19 @@
-  <script>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ozon 智能上架助手 v1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-3xl font-bold">Ozon 智能上架助手 v1</h1>
+      <p class="text-sm text-gray-600 mt-1">通过 Vercel 代理安全调用 Ozon Seller API · 界面仅中文</p>
+    </header>
+
+<script>
     // 封装 API 代理请求
     const proxy = async (endpoint, body = {}, query = '') => {
       const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}${query || ''}`, {
@@ -80,3 +95,4 @@
   </script>
 </body>
 </html>
+
