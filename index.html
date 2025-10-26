@@ -149,7 +149,7 @@
       out.textContent = '请求中…';
       const language = document.getElementById('lang').value;
       const body = { language };
-      const { ok, status, data } = await proxy('/v2/description-category/tree', body);
+      const { ok, status, data } = await proxy('/v1/description-category/attribute', body);
       out.textContent = JSON.stringify({ ok, status, data }, null, 2);
     });
 
@@ -170,7 +170,7 @@
       out.textContent = '上传中…';
       try {
         const body = JSON.parse(document.getElementById('product-json').value || '{}');
-        const { ok, status, data } = await proxy('/v2/description-category/tree', body);
+        const { ok, status, data } = await proxy('/v3/product/import', body);
         out.textContent = JSON.stringify({ ok, status, data }, null, 2);
       } catch (e) {
         out.textContent = 'JSON 解析失败：' + (e.message || e);
@@ -200,4 +200,5 @@
   </script>
 </body>
 </html>
+
 
