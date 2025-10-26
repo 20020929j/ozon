@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 export async function handler(event) {
   const { endpoint } = event.queryStringParameters;
   const body = event.body ? JSON.parse(event.body) : null;
@@ -10,7 +8,10 @@ export async function handler(event) {
   if (!clientId || !apiKey) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ ok: false, error: "缺少 OZON_CLIENT_ID 或 OZON_API_KEY" }),
+      body: JSON.stringify({
+        ok: false,
+        error: "缺少 OZON_CLIENT_ID 或 OZON_API_KEY 环境变量",
+      }),
     };
   }
 
@@ -26,6 +27,7 @@ export async function handler(event) {
     });
 
     const data = await res.json();
+
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true, data }),
@@ -33,8 +35,10 @@ export async function handler(event) {
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ ok: false, error: err.message }),
+      body: JSON.stringify({
+        ok: false,
+        error: `请求 Ozon API 出错: ${err.message}`,
+      }),
     };
   }
 }
-
