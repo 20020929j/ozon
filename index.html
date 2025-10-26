@@ -232,14 +232,34 @@
       const onlyReq = $onlyRequired.checked, kw = ($attrSearch.value || '').toLowerCase();
       const list = ATTR_ALL.filter(a => (!onlyReq || a.is_required) && (!kw || a.name.toLowerCase().includes(kw)));
       $counter.textContent = `显示 ${list.length} / ${ATTR_ALL.length}`;
-      $attrCards.innerHTML = list.map(a => `
+      $attrCards.innerHTML = list.map(a => {
+        const hasDict = a.dictionary || (a.values && a.values.length > 0);
+        let inputField = '';
+        
+        if (hasDict) {
+          // 显示下拉框
+          const dictValues = a.dictionary || a.values || [];
+          const options = '<option value="">请选择...</option>' + 
+            dictValues.map(v => {
+              const value = v.value || v;
+              const label = v.name || v.value || v;
+              return `<option value="${value}">${label}</option>`;
+            }).join('');
+          inputField = `<select id="in-${a.id}" class="mt-2 w-full border rounded px-2 py-1 text-sm">${options}</select>`;
+        } else {
+          // 显示文本输入框
+          inputField = `<input id="in-${a.id}" class="mt-2 w-full border rounded px-2 py-1 text-sm" placeholder="请输入属性值..." />`;
+        }
+        
+        return `
         <div class="border rounded p-3 ${a.is_required ? 'border-red-300' : 'border-gray-200'}">
           <div class="flex justify-between">
-            <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''}</div>
+            <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''} ${hasDict ? '<span class="text-blue-600 text-xs">[字典]</span>' : ''}</div>
             <div class="text-xs text-gray-500">ID:${a.id}</div>
           </div>
-          <input id="in-${a.id}" class="mt-2 w-full border rounded px-2 py-1 text-sm" placeholder="请输入属性值..." />
-        </div>`).join('');
+          ${inputField}
+        </div>`;
+      }).join('');
     };
     $onlyRequired.onchange = renderAttrs; $attrSearch.oninput = renderAttrs;
 
