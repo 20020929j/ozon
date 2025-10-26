@@ -1,89 +1,205 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ozon 智能上架助手 v1</title>
-  <style>
-    body { font-family: "Segoe UI", sans-serif; margin: 20px; background: #f6f7f9; }
-    h1 { color: #111; }
-    .box { background: #fff; padding: 15px; margin-top: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    button { background: #0070f3; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #0059c1; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Ozon 智能上架助手 v1</h1>
-  <p>通过 Vercel 代理安全调用 Ozon Seller API · 界面仅中文</p>
+<body class="bg-gray-50 text-gray-900">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-3xl font-bold">Ozon 智能上架助手 v1</h1>
+      <p class="text-sm text-gray-600 mt-1">通过 Vercel 代理安全调用 Ozon Seller API · 界面仅中文</p>
+    </header>
 
-  <!-- 测试代理 -->
-  <div class="box">
-    <h3>连接状态</h3>
-    <button id="btn-ping">测试代理</button>
-    <pre id="ping-out"></pre>
+    <!-- 连接状态 -->
+    <section class="mb-6">
+      <div class="p-4 rounded-2xl bg-white shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold">连接状态</h2>
+            <p class="text-xs text-gray-500">后端通过环境变量 OZON_CLIENT_ID 与 OZON_API_KEY 访问 Ozon API</p>
+          </div>
+          <button id="btn-ping" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">测试代理</button>
+        </div>
+        <pre id="ping-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-48"></pre>
+      </div>
+    </section>
+
+    <!-- 快捷操作 -->
+    <section class="grid md:grid-cols-2 gap-6">
+      <!-- 获取类目树 -->
+      <div class="p-4 rounded-2xl bg-white shadow-sm">
+        <h3 class="font-semibold">① 获取类目树</h3>
+        <p class="text-xs text-gray-500">POST /v1/description-category/tree</p>
+        <div class="mt-2 space-y-2">
+          <label class="block text-sm">语言：
+            <select id="lang" class="mt-1 w-full border rounded-xl p-2">
+              <option value="RU">RU</option>
+              <option value="EN">EN</option>
+            </select>
+          </label>
+          <button id="btn-tree" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">获取类目树</button>
+        </div>
+        <pre id="tree-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
+      </div>
+
+      <!-- 获取类目属性 -->
+      <div class="p-4 rounded-2xl bg-white shadow-sm">
+        <h3 class="font-semibold">② 获取类目属性</h3>
+        <p class="text-xs text-gray-500">POST /v1/description-category/attribute</p>
+        <div class="mt-2 grid grid-cols-1 gap-2">
+          <label class="text-sm">类目ID：
+            <input id="cat-id" type="number" class="mt-1 w-full border rounded-xl p-2" placeholder="例如 17037043" />
+          </label>
+          <label class="text-sm">语言：
+            <select id="attr-lang" class="mt-1 w-full border rounded-xl p-2">
+              <option value="RU">RU</option>
+              <option value="EN">EN</option>
+            </select>
+          </label>
+          <button id="btn-attr" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">获取属性</button>
+        </div>
+        <pre id="attr-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
+      </div>
+    </section>
+
+    <!-- 上传商品 -->
+    <section class="mt-6 p-4 rounded-2xl bg-white shadow-sm">
+      <h3 class="font-semibold">③ 上传商品</h3>
+      <p class="text-xs text-gray-500">POST /v3/product/import</p>
+      <textarea id="product-json" class="mt-2 w-full border rounded-xl p-3 text-xs h-48" placeholder='{
+  "items": [
+    {
+      "offer_id": "YOUR_OFFER_ID",
+      "category_id": 0,
+      "name": "商品标题（俄语/中文皆可）",
+      "price": "1990",
+      "vat": "0",
+      "description": "你的商品描述……",
+      "images": [
+        {"file_name": "https://example.com/your-image.jpg"}
+      ],
+      "attributes": [
+        {"attribute_id": 85, "values": [{"value": "BrandName"}]}
+      ]
+    }
+  ]
+}'></textarea>
+      <div class="mt-3 flex gap-3">
+        <button id="btn-upload" class="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700">上传商品</button>
+        <button id="btn-format" class="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300">格式化 JSON</button>
+      </div>
+      <pre id="upload-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
+    </section>
+
+    <!-- 自定义请求 -->
+    <section class="mt-6 p-4 rounded-2xl bg-white shadow-sm">
+      <h3 class="font-semibold">④ 自定义请求（高级）</h3>
+      <p class="text-xs text-gray-500">可直接调用任意允许的 Ozon 接口（endpoint 必须以 / 开头）</p>
+      <div class="grid md:grid-cols-2 gap-3 mt-2">
+        <label class="text-sm">Endpoint：
+          <input id="custom-endpoint" class="mt-1 w-full border rounded-xl p-2" placeholder="/v2/product/info" />
+        </label>
+        <label class="text-sm">Query 参数：
+          <input id="custom-query" class="mt-1 w-full border rounded-xl p-2" placeholder="?limit=100" />
+        </label>
+      </div>
+      <textarea id="custom-body" class="mt-3 w-full border rounded-xl p-3 text-xs h-40" placeholder='{"example": true}'></textarea>
+      <div class="mt-3">
+        <button id="btn-custom" class="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">发送请求</button>
+      </div>
+      <pre id="custom-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
+    </section>
+
+    <footer class="text-center text-xs text-gray-400 mt-10">
+      © 2025 Ozon Helper · 本工具仅供自动化研究使用
+    </footer>
   </div>
 
-  <!-- 获取类目树 -->
-  <div class="box">
-    <h3>① 获取类目树</h3>
-    <p>POST /v1/description-category/tree</p>
-    <select id="lang">
-      <option value="RU">RU</option>
-      <option value="EN">EN</option>
-    </select>
-    <button id="btn-tree">获取类目树</button>
-    <pre id="tree-out"></pre>
-  </div>
-
-  <!-- 获取类目属性 -->
-  <div class="box">
-    <h3>② 获取类目属性</h3>
-    <p>POST /v1/description-category/attribute</p>
-    <input id="cat-id" placeholder="例如 17037043">
-    <select id="attr-lang">
-      <option value="RU">RU</option>
-      <option value="EN">EN</option>
-    </select>
-    <button id="btn-attr">获取属性</button>
-    <pre id="attr-out"></pre>
-  </div>
-
+  <!-- JS逻辑 -->
   <script>
-    async function proxy(endpoint, body = {}) {
-      const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}`, {
+    // 统一代理调用
+    const proxy = async (endpoint, body = {}, query = '') => {
+      const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}${query || ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       const data = await res.json().catch(() => ({}));
       return { ok: res.ok, status: res.status, data };
-    }
+    };
 
-    document.getElementById('btn-ping').onclick = async () => {
+    // 测试代理（GET，无需 endpoint）
+    document.getElementById('btn-ping').addEventListener('click', async () => {
       const out = document.getElementById('ping-out');
-      out.textContent = '测试中...';
-      const data = await proxy('/v1/description-category/tree', { language: 'RU' });
-      out.textContent = JSON.stringify(data, null, 2);
-    };
+      out.textContent = '测试中…';
+      try {
+        const res = await fetch('/api/ozon-proxy');
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        out.textContent = e.message || String(e);
+      }
+    });
 
-    document.getElementById('btn-tree').onclick = async () => {
+    // 获取类目树 /v1/description-category/tree
+    document.getElementById('btn-tree').addEventListener('click', async () => {
       const out = document.getElementById('tree-out');
-      out.textContent = '请求中...';
-      const lang = document.getElementById('lang').value;
-      const body = { language: lang };
-      const data = await proxy('/v1/description-category/tree', body);
-      out.textContent = JSON.stringify(data, null, 2);
-    };
+      out.textContent = '请求中…';
+      const language = document.getElementById('lang').value;
+      const body = { language };
+      const { ok, status, data } = await proxy('/v1/description-category/tree', body);
+      out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+    });
 
-    document.getElementById('btn-attr').onclick = async () => {
+    // 获取类目属性 /v1/description-category/attribute
+    document.getElementById('btn-attr').addEventListener('click', async () => {
       const out = document.getElementById('attr-out');
-      out.textContent = '请求中...';
-      const catId = Number(document.getElementById('cat-id').value);
-      const lang = document.getElementById('attr-lang').value;
-      const body = { category_id: catId, language: lang };
-      const data = await proxy('/v1/description-category/attribute', body);
-      out.textContent = JSON.stringify(data, null, 2);
-    };
+      out.textContent = '请求中…';
+      const category_id = Number(document.getElementById('cat-id').value || 0);
+      const language = document.getElementById('attr-lang').value;
+      const body = { category_id, language };
+      const { ok, status, data } = await proxy('/v1/description-category/attribute', body);
+      out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+    });
+
+    // 上传商品 /v3/product/import
+    document.getElementById('btn-upload').addEventListener('click', async () => {
+      const out = document.getElementById('upload-out');
+      out.textContent = '上传中…';
+      try {
+        const body = JSON.parse(document.getElementById('product-json').value || '{}');
+        const { ok, status, data } = await proxy('/v3/product/import', body);
+        out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+      } catch (e) {
+        out.textContent = 'JSON 解析失败：' + (e.message || e);
+      }
+    });
+
+    // 格式化 JSON
+    document.getElementById('btn-format').addEventListener('click', () => {
+      const ta = document.getElementById('product-json');
+      try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); } catch {}
+    });
+
+    // 自定义请求
+    document.getElementById('btn-custom').addEventListener('click', async () => {
+      const out = document.getElementById('custom-out');
+      out.textContent = '请求中…';
+      const endpoint = document.getElementById('custom-endpoint').value.trim();
+      const query = document.getElementById('custom-query').value.trim();
+      if (!endpoint.startsWith('/')) {
+        out.textContent = 'endpoint 必须以 / 开头';
+        return;
+      }
+      let body = {};
+      try { body = JSON.parse(document.getElementById('custom-body').value || '{}'); }
+      catch (e) { out.textContent = 'JSON 解析失败：' + (e.message || e); return; }
+      const { ok, status, data } = await proxy(endpoint, body, query);
+      out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+    });
   </script>
 </body>
 </html>
