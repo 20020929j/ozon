@@ -10,7 +10,7 @@
     <h1 class="text-3xl font-bold">Ozon 类目属性助手</h1>
     <p class="text-sm text-gray-600">支持中文类目树选择 + 自动加载必填/选填属性</p>
 
-    <!-- 语言 + 控制 -->
+    <!-- 控制区 -->
     <div class="flex items-center gap-3">
       <select id="lang" class="border rounded-lg p-2">
         <option value="ZH_HANS">ZH_HANS (中文)</option>
@@ -21,21 +21,19 @@
       <span id="status" class="text-sm text-gray-600"></span>
     </div>
 
-    <!-- 三级下拉 -->
+    <!-- 下拉菜单 -->
     <div class="flex gap-3">
       <select id="lvl1" class="border rounded-lg p-2 w-1/3"><option>选择一级类目</option></select>
       <select id="lvl2" class="border rounded-lg p-2 w-1/3"><option>选择二级类目</option></select>
       <select id="lvl3" class="border rounded-lg p-2 w-1/3"><option>选择三级类目</option></select>
     </div>
 
-    <!-- 属性展示 -->
+    <!-- 属性展示区 -->
     <div id="attr-section" class="hidden">
       <div class="flex items-center justify-between mt-4">
         <h2 class="text-2xl font-semibold">类目属性</h2>
         <button id="btn-attr-refresh" class="px-3 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">刷新属性</button>
       </div>
-      <p class="text-gray-500 text-sm">显示选中类目需填写的所有属性，区分必填与选填</p>
-
       <div id="attr-out" class="mt-3 bg-white p-4 rounded-xl shadow-sm border space-y-3 max-h-[500px] overflow-auto"></div>
     </div>
 
@@ -59,7 +57,7 @@
     let categoryTree = [];
     let selectedCategoryId = null;
 
-    // 加载类目树
+    // 获取类目树
     async function loadCategoryTree(refresh = false) {
       out.textContent = "正在获取类目树...";
       const language = document.getElementById('lang').value;
@@ -69,7 +67,7 @@
         return;
       }
       categoryTree = data.result || [];
-      statusEl.textContent = fromCache ? "✅ 已从缓存加载" : "🆕 从 API 获取";
+      statusEl.textContent = fromCache ? "✅ 从缓存加载" : "🆕 从 API 获取";
       renderLevel(1, categoryTree);
       out.textContent = "类目树加载成功。";
     }
@@ -86,6 +84,7 @@
           const sel = list.find(i => i.description_category_id == s1.value);
           renderLevel(2, sel?.children || []);
           s3.innerHTML = '<option>选择三级类目</option>';
+          attrSection.classList.add('hidden');
         };
       } else if (level === 2) {
         s2.innerHTML = '<option value="">选择二级类目</option>' +
@@ -93,18 +92,19 @@
         s2.onchange = () => {
           const sel = list.find(i => i.description_category_id == s2.value);
           renderLevel(3, sel?.children || []);
+          attrSection.classList.add('hidden');
         };
       } else if (level === 3) {
         s3.innerHTML = '<option value="">选择三级类目</option>' +
           list.map(i => `<option value="${i.type_id}">${i.type_name || i.category_name}</option>`).join('');
-        s3.onchange = () => {
+        s3.onchange = async () => {
           selectedCategoryId = s3.value;
-          if (selectedCategoryId) loadAttributes(selectedCategoryId);
+          if (selectedCategoryId) await loadAttributes(selectedCategoryId);
         };
       }
     }
 
-    // 加载属性
+    // 获取属性
     async function loadAttributes(categoryId, refresh = false) {
       attrOut.textContent = '正在加载属性...';
       const language = document.getElementById('lang').value;
@@ -113,16 +113,18 @@
         attrOut.textContent = JSON.stringify(data, null, 2);
         return;
       }
-      attrSection.classList.remove('hidden');
-      renderAttributes(data.result || []);
+      const attrs = data.result || [];
+      renderAttributes(attrs);
     }
 
     // 渲染属性
     function renderAttributes(attrs) {
       if (!attrs.length) {
+        attrSection.classList.remove('hidden');
         attrOut.innerHTML = '<p class="text-gray-500">该类目暂无属性。</p>';
         return;
       }
+      attrSection.classList.remove('hidden');
       attrOut.innerHTML = attrs.map(a => `
         <div class="p-3 border rounded-lg ${a.is_required ? 'border-red-400 bg-red-50' : 'border-green-300 bg-green-50'}">
           <div class="flex justify-between items-center">
@@ -136,7 +138,6 @@
       `).join('');
     }
 
-    // 事件绑定
     document.getElementById('btn-tree').addEventListener('click', () => loadCategoryTree(false));
     document.getElementById('btn-refresh').addEventListener('click', () => loadCategoryTree(true));
     document.getElementById('btn-attr-refresh').addEventListener('click', () => {
