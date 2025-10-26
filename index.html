@@ -174,23 +174,73 @@
 
     $lang.addEventListener('change', () => (LANG = $lang.value));
 
-    $btnPing.onclick = async () => {
-      $pingStatus.textContent = '检测中...';
-      try {
-        const proxyOk = await fetch('/api/ozon-proxy').then(r => r.json());
-        if (!proxyOk.ok) throw new Error('代理异常');
-        const apiOk = await ozon('/v1/description-category/tree', { language: 'RU' });
-        $pingStatus.textContent = `✅ 连接成功 (${apiOk.result.length} 类)`;
-      } catch (e) {
-        $pingStatus.textContent = '❌ ' + e.message;
+    // --- API 连接检测 ---
+    let apiStatus = { proxy: false, api: false, message: '' };
+    
+    const updateStatus = () => {
+      if (apiStatus.proxy && apiStatus.api) {
+        $pingStatus.textContent = apiStatus.message;
+        $pingStatus.className = 'text-sm text-green-600';
+      } else if (!apiStatus.proxy) {
+        $pingStatus.textContent = '❌ 代理服务器未就绪';
+        $pingStatus.className = 'text-sm text-red-600';
+      } else {
+        $pingStatus.textContent = '❌ API 连接异常: ' + apiStatus.message;
+        $pingStatus.className = 'text-sm text-red-600';
       }
     };
+
+    $btnPing.onclick = async () => {
+      $pingStatus.textContent = '检测中...';
+      $pingStatus.className = 'text-sm text-yellow-600';
+      
+      // 检测代理
+      try {
+        const proxyRes = await fetch('/api/ozon-proxy');
+        const proxyOk = await proxyRes.json();
+        if (!proxyOk.ok) throw new Error(proxyOk.error || '代理返回异常');
+        apiStatus.proxy = true;
+        apiStatus.message = '✅ 代理就绪';
+      } catch (e) {
+        apiStatus.proxy = false;
+        apiStatus.message = '代理连接失败: ' + e.message;
+        updateStatus();
+        return;
+      }
+
+      // 检测 API
+      try {
+        const apiOk = await ozon('/v1/description-category/tree', { language: 'RU' });
+        if (apiOk.result && Array.isArray(apiOk.result)) {
+          apiStatus.api = true;
+          apiStatus.message = `✅ 连接正常 (${apiOk.result.length} 个类目)`;
+        } else {
+          apiStatus.api = false;
+          apiStatus.message = 'API 响应格式异常';
+        }
+      } catch (e) {
+        apiStatus.api = false;
+        apiStatus.message = e.message || 'API 请求失败';
+      }
+      
+      updateStatus();
+    };
+
+    // 页面加载时自动检测
+    window.addEventListener('load', () => {
+      setTimeout(() => $btnPing.click(), 500);
+    });
 
     const fillSelect = (sel, arr, ph) => {
       sel.innerHTML = `<option value="">${ph}</option>` + arr.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
     };
 
     $btnLoadTree.onclick = async () => {
+      if (!apiStatus.api || !apiStatus.proxy) {
+        alert('❌ API 未连接，请先点击"验证 API 连接"按钮！');
+        return;
+      }
+      
       $tips.textContent = '正在加载类目...';
       const cacheKey = 'OZON_TREE_' + LANG;
       const cached = localStorage.getItem(cacheKey);
@@ -265,6 +315,11 @@
 
     // --- 单个商品上传 ---
     document.getElementById('btnUploadSingle').onclick = async () => {
+      if (!apiStatus.api || !apiStatus.proxy) {
+        alert('❌ API 未连接，请先点击"验证 API 连接"按钮！');
+        return;
+      }
+      
       try {
         const offer_id = offerId.value.trim(), name = title.value.trim(), price = Number(priceEl.value || 0);
         if (!offer_id || !name || !price) return alert('Offer ID、标题、价格为必填！');
@@ -343,6 +398,11 @@
     document.getElementById('btnClearRows').onclick = () => { batchTbody.innerHTML = ''; batchRowCount = 0; batchStatus.textContent = ''; batchResult.textContent = ''; };
 
     document.getElementById('btnUploadBatch').onclick = async () => {
+      if (!apiStatus.api || !apiStatus.proxy) {
+        alert('❌ API 未连接，请先点击"验证 API 连接"按钮！');
+        return;
+      }
+      
       if (!currentC2) return alert('请先选择二级类目！');
       
       const rows = batchTbody.querySelectorAll('tr');
