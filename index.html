@@ -2,13 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>Ozon 类目属性助手 v5（可填写 + 导出JSON）</title>
+  <title>Ozon 类目属性助手 v5（Netlify部署兼容版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-7xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-4">Ozon 类目属性助手 v5</h1>
+    <h1 class="text-2xl font-bold mb-4">🛒 Ozon 类目属性助手 v5</h1>
 
     <!-- 顶部操作栏 -->
     <div class="flex flex-wrap gap-3 items-center mb-4">
@@ -36,7 +36,7 @@
       </label>
     </div>
 
-    <!-- 类目下拉 -->
+    <!-- 类目三级下拉 -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
       <select id="c1" class="w-full border rounded px-3 py-2"><option>请获取类目树...</option></select>
       <select id="c2" class="w-full border rounded px-3 py-2"></select>
@@ -47,6 +47,7 @@
       请选择二级类目和三级类型后自动获取属性
     </div>
 
+    <!-- 属性展示区域 -->
     <div id="attrPanel" class="bg-white rounded-2xl shadow p-4">
       <div id="attrLoading" class="text-sm text-gray-600">尚未加载属性...</div>
       <div id="attrList" class="hidden">
@@ -55,116 +56,115 @@
           <div><input id="attrSearch" type="text" class="border rounded px-3 py-1 text-sm" placeholder="搜索属性..." /></div>
         </div>
         <div id="attrCards" class="grid gap-3"></div>
-
-        <div class="mt-4 flex justify-end">
-          <button id="btnExport" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">导出属性 JSON</button>
-        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // 通用请求包装
+    // 🔗 通用请求函数
     const ozon = async (endpoint, body = null) => {
       const opts = body
-        ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-        : { method: 'GET' };
-      const res = await fetch('/api/ozon-proxy?endpoint=' + encodeURIComponent(endpoint), opts);
+        ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+        : { method: "GET" };
+      const res = await fetch("/api/ozon-proxy?endpoint=" + encodeURIComponent(endpoint), opts);
       const data = await res.json();
       if (!res.ok || data.ok === false) throw new Error(data.error || JSON.stringify(data));
       return data.data || data;
     };
 
-    // 状态变量
+    // 🧠 状态变量
     let TREE = [];
     let C1 = [], C2 = [], C3 = [];
     let currentC2 = 0, currentType = 0;
     let ATTR_ALL = [];
-    let LANG = 'ZH_HANS';
+    let LANG = "ZH_HANS";
 
-    // DOM 元素绑定
-    const $ping = document.getElementById('btnPing');
-    const $pingStatus = document.getElementById('pingStatus');
-    const $btnLoadTree = document.getElementById('btnLoadTree');
-    const $btnForceReload = document.getElementById('btnForceReload');
-    const $c1 = document.getElementById('c1'), $c2 = document.getElementById('c2'), $c3 = document.getElementById('c3');
-    const $tips = document.getElementById('tips');
-    const $attrLoading = document.getElementById('attrLoading');
-    const $attrList = document.getElementById('attrList');
-    const $attrCards = document.getElementById('attrCards');
-    const $counter = document.getElementById('counter');
-    const $attrSearch = document.getElementById('attrSearch');
-    const $onlyRequired = document.getElementById('onlyRequired');
-    const $lang = document.getElementById('lang');
+    // 🧩 DOM
+    const $ping = document.getElementById("btnPing");
+    const $pingStatus = document.getElementById("pingStatus");
+    const $btnLoadTree = document.getElementById("btnLoadTree");
+    const $btnForceReload = document.getElementById("btnForceReload");
+    const $c1 = document.getElementById("c1"), $c2 = document.getElementById("c2"), $c3 = document.getElementById("c3");
+    const $tips = document.getElementById("tips");
+    const $attrLoading = document.getElementById("attrLoading");
+    const $attrList = document.getElementById("attrList");
+    const $attrCards = document.getElementById("attrCards");
+    const $counter = document.getElementById("counter");
+    const $attrSearch = document.getElementById("attrSearch");
+    const $onlyRequired = document.getElementById("onlyRequired");
+    const $lang = document.getElementById("lang");
 
-    $lang.addEventListener('change', () => (LANG = $lang.value));
+    $lang.addEventListener("change", () => (LANG = $lang.value));
 
-    // 验证代理与 API 连接
+    // ✅ 验证连接
     $ping.onclick = async () => {
-      $pingStatus.textContent = '检测中...';
+      $pingStatus.textContent = "检测中...";
       try {
-        const proxyOk = await fetch('/api/ozon-proxy').then(r => r.json());
-        if (!proxyOk.ok) throw new Error('代理层连接异常');
-        const apiOk = await ozon('/v1/description-category/tree', { language: 'RU' });
-        if (!apiOk.result) throw new Error('Ozon API 响应异常');
-        $pingStatus.innerHTML = '✅ API 连接正常，共 ' + apiOk.result.length + ' 个一级类目';
+        const proxyOk = await fetch("/api/ozon-proxy").then(r => r.json());
+        if (!proxyOk.ok) throw new Error("代理层连接异常");
+        const apiOk = await ozon("/v1/description-category/tree", { language: "RU" });
+        if (!apiOk.result) throw new Error("Ozon API 响应异常");
+        $pingStatus.innerHTML = "✅ API连接正常，共 " + apiOk.result.length + " 个一级类目";
       } catch (e) {
-        $pingStatus.innerHTML = '❌ 连接失败：' + e.message;
+        $pingStatus.innerHTML = "❌ 连接失败：" + e.message;
       }
     };
 
+    // ⚡ 填充下拉
     const fillSelect = (sel, arr, ph) => {
-      sel.innerHTML = `<option value="">${ph}</option>` + arr.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      sel.innerHTML = `<option value="">${ph}</option>` + arr.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
     };
 
+    // ♻️ 重置属性
     const resetAttr = () => {
-      $attrLoading.textContent = '尚未加载属性...';
-      $attrLoading.classList.remove('hidden');
-      $attrList.classList.add('hidden');
-      $attrCards.innerHTML = '';
+      $attrLoading.textContent = "尚未加载属性...";
+      $attrLoading.classList.remove("hidden");
+      $attrList.classList.add("hidden");
+      $attrCards.innerHTML = "";
     };
 
-    // 获取类目树
+    // 🧭 获取类目树
     $btnLoadTree.onclick = async () => {
-      const cacheKey = 'OZON_TREE_' + LANG;
+      const cacheKey = "OZON_TREE_" + LANG;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         TREE = JSON.parse(cached);
-        fillSelect($c1, TREE.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })), '请选择一级类目');
-        $tips.textContent = '✅ 已从本地缓存加载类目树';
+        fillSelect($c1, TREE.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })), "请选择一级类目");
+        $tips.textContent = "✅ 已从缓存加载类目树";
         return;
       }
 
-      $tips.textContent = '正在从 API 获取类目树...';
+      $tips.textContent = "正在从 API 获取类目树...";
       try {
-        const resp = await ozon('/v1/description-category/tree', { language: LANG });
+        const resp = await ozon("/v1/description-category/tree", { language: LANG });
         TREE = resp.result || [];
         localStorage.setItem(cacheKey, JSON.stringify(TREE));
-        fillSelect($c1, TREE.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })), '请选择一级类目');
-        $tips.textContent = '✅ 类目树加载成功并已缓存';
+        fillSelect($c1, TREE.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })), "请选择一级类目");
+        $tips.textContent = "✅ 类目树加载成功并已缓存";
       } catch (e) {
-        $tips.textContent = '❌ 加载失败：' + e.message;
+        $tips.textContent = "❌ 加载失败：" + e.message;
       }
     };
 
+    // 🔄 强制刷新类目树
     $btnForceReload.onclick = () => {
-      localStorage.removeItem('OZON_TREE_' + LANG);
-      alert('✅ 已清除缓存，请重新点击“获取类目树”加载最新数据。');
+      localStorage.removeItem("OZON_TREE_" + LANG);
+      alert("✅ 已清除缓存，请重新点击“获取类目树”加载最新数据。");
     };
 
-    // 三级联动
+    // 🧱 类目三级联动
     $c1.onchange = () => {
       const n = TREE.find(x => x.description_category_id == $c1.value);
       C2 = n?.children?.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })) || [];
-      fillSelect($c2, C2, '请选择二级类目');
-      fillSelect($c3, [], '请选择三级类型');
+      fillSelect($c2, C2, "请选择二级类目");
+      fillSelect($c3, [], "请选择三级类型");
       resetAttr();
     };
 
     $c2.onchange = () => {
       const n = C2.find(x => x.id == $c2.value);
       C3 = n?.children?.map(t => ({ id: t.type_id, name: t.type_name })) || [];
-      fillSelect($c3, C3, '请选择三级类型');
+      fillSelect($c3, C3, "请选择三级类型");
       currentC2 = Number($c2.value) || 0;
       resetAttr();
     };
@@ -174,29 +174,29 @@
       if (currentC2 && currentType) loadAttrs();
     };
 
-    // 加载属性
+    // 🧩 获取属性
     async function loadAttrs() {
       try {
-        $tips.textContent = '获取属性中...';
-        const resp = await ozon('/v1/description-category/attribute', {
+        $tips.textContent = "获取属性中...";
+        const resp = await ozon("/v1/description-category/attribute", {
           description_category_id: currentC2,
           type_id: currentType,
           language: LANG
         });
         ATTR_ALL = resp.result || [];
         renderAttrs();
-        $attrLoading.classList.add('hidden');
-        $attrList.classList.remove('hidden');
+        $attrLoading.classList.add("hidden");
+        $attrList.classList.remove("hidden");
         $tips.textContent = `✅ 共加载 ${ATTR_ALL.length} 个属性`;
       } catch (e) {
-        $attrLoading.textContent = '❌ 获取失败：' + e.message;
+        $attrLoading.textContent = "❌ 获取失败：" + e.message;
       }
     }
 
-    // 渲染属性卡片 + 输入功能
+    // 🧾 渲染属性
     const renderAttrs = () => {
       const onlyReq = $onlyRequired.checked;
-      const kw = ($attrSearch.value || '').toLowerCase();
+      const kw = ($attrSearch.value || "").toLowerCase();
       let list = ATTR_ALL.filter(a => (!onlyReq || a.is_required) && (!kw || a.name.toLowerCase().includes(kw)));
 
       $counter.textContent = `显示 ${list.length} / ${ATTR_ALL.length}`;
@@ -206,26 +206,22 @@
             <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : '<span class="text-green-600">(选填)</span>'}</div>
             <div class="text-xs text-gray-500">类型: ${a.type} · ID: ${a.id}</div>
           </div>
-          <div class="text-xs text-gray-500 mt-1">${a.description || ''}</div>
-
-          <div class="mt-2 flex items-center gap-2">
-            ${
-              a.dictionary_id > 0
-                ? `<button data-dict="${a.id}" data-dictid="${a.dictionary_id}" class="text-xs px-2 py-1 bg-indigo-600 text-white rounded">加载字典</button>
-                   <div id="dict-${a.id}" class="text-xs text-gray-600"></div>`
-                : `<input id="val-${a.id}" type="text" placeholder="请输入值..." class="border px-2 py-1 rounded text-sm w-full" />`
-            }
+          <div class="text-xs text-gray-500 mt-1">${a.description || ""}</div>
+          <div class="mt-2">
+            <input type="text" placeholder="请输入值..." class="border rounded px-2 py-1 w-full text-sm attr-input" data-id="${a.id}" />
           </div>
+          ${a.dictionary_id > 0 ? `<button data-dict="${a.id}" data-dictid="${a.dictionary_id}" class="mt-2 text-xs px-2 py-1 bg-indigo-600 text-white rounded">加载字典</button><div id="dict-${a.id}" class="mt-2 text-xs text-gray-600"></div>` : ""}
         </div>
-      `).join('');
+      `).join("");
 
-      document.querySelectorAll('[data-dict]').forEach(btn => {
+      // 绑定字典加载
+      document.querySelectorAll("[data-dict]").forEach(btn => {
         btn.onclick = async () => {
           const attrId = btn.dataset.dict;
-          const box = document.getElementById('dict-' + attrId);
-          box.innerHTML = '加载中...';
+          const box = document.getElementById("dict-" + attrId);
+          box.innerHTML = "加载中...";
           try {
-            const resp = await ozon('/v1/description-category/attribute/values', {
+            const resp = await ozon("/v1/description-category/attribute/values", {
               attribute_id: Number(attrId),
               description_category_id: currentC2,
               type_id: currentType,
@@ -233,45 +229,19 @@
               language: LANG
             });
             const vals = resp.result || [];
-            if (!vals.length) return box.innerHTML = '暂无字典';
-            const select = document.createElement('select');
-            select.className = 'border rounded px-2 py-1 text-xs';
-            select.innerHTML = `<option value="">请选择</option>` + vals.map(v => `<option value="${v.value}">${v.value}</option>`).join('');
-            const input = document.createElement('input');
-            input.className = 'border ml-2 px-2 py-1 text-xs rounded';
-            input.placeholder = '已选值';
-            select.onchange = () => input.value = select.value;
-            input.id = `val-${attrId}`;
-            box.innerHTML = '';
+            if (!vals.length) return box.innerHTML = "暂无字典";
+            const select = document.createElement("select");
+            select.className = "border rounded px-2 py-1 text-xs";
+            select.innerHTML = `<option value="">请选择</option>` + vals.map(v => `<option value="${v.value}">${v.value}</option>`).join("");
+            const input = document.querySelector(`.attr-input[data-id="${attrId}"]`);
+            select.onchange = () => (input.value = select.value);
+            box.innerHTML = "";
             box.appendChild(select);
-            box.appendChild(input);
           } catch (e) {
-            box.innerHTML = '❌ 加载失败：' + e.message;
+            box.innerHTML = "❌ 加载失败：" + e.message;
           }
         };
       });
-    };
-
-    // 导出 JSON
-    document.getElementById('btnExport').onclick = () => {
-      const filled = ATTR_ALL.map(a => {
-        const val = document.getElementById(`val-${a.id}`)?.value?.trim() || '';
-        return val ? { id: a.id, values: [{ value: val }] } : null;
-      }).filter(Boolean);
-
-      const productData = {
-        description_category_id: currentC2,
-        type_id: currentType,
-        attributes: filled
-      };
-
-      const blob = new Blob([JSON.stringify(productData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'ozon_attributes.json';
-      a.click();
-      URL.revokeObjectURL(url);
     };
 
     $onlyRequired.onchange = renderAttrs;
