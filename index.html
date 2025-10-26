@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ozon 智能上架助手 v2</title>
+  <title>Ozon 智能上架助手 v3</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-6xl mx-auto p-6">
     <header class="mb-6">
-      <h1 class="text-3xl font-bold">Ozon 智能上架助手 v2</h1>
-      <p class="text-sm text-gray-600 mt-1">支持中文类目树 · Vercel 安全代理版</p>
+      <h1 class="text-3xl font-bold">Ozon 智能上架助手 v3</h1>
+      <p class="text-sm text-gray-600 mt-1">支持中文类目树 + 自动识别类型(type_id) + 安全代理</p>
     </header>
 
     <!-- 连接状态 -->
@@ -25,20 +25,14 @@
       <pre id="ping-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-48"></pre>
     </section>
 
-    <!-- 类目树 -->
+    <!-- 获取类目树 -->
     <section class="mb-6 bg-white p-4 rounded-2xl shadow-sm">
-      <h3 class="font-semibold">① 获取类目树</h3>
+      <h3 class="font-semibold">① 获取类目树（中文）</h3>
       <p class="text-xs text-gray-500">POST /v1/description-category/tree</p>
 
       <div class="flex flex-wrap gap-3 mt-3 items-center">
-        <label class="text-sm">语言：
-          <select id="lang" class="border rounded-xl p-2">
-            <option value="ZH_HANS">ZH_HANS（中文）</option>
-            <option value="RU">RU（俄语）</option>
-            <option value="EN">EN（英语）</option>
-          </select>
-        </label>
         <button id="btn-tree" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">获取类目树</button>
+        <span class="text-xs text-gray-400">语言固定为 ZH_HANS（简体中文）</span>
       </div>
 
       <div id="category-selects" class="mt-4 grid md:grid-cols-3 gap-3 hidden">
@@ -51,23 +45,19 @@
       <pre id="tree-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-60"></pre>
     </section>
 
-    <!-- 获取属性 -->
+    <!-- 获取类目属性 -->
     <section class="mb-6 bg-white p-4 rounded-2xl shadow-sm">
       <h3 class="font-semibold">② 获取类目属性</h3>
       <p class="text-xs text-gray-500">POST /v1/description-category/attribute</p>
 
       <div class="grid md:grid-cols-3 gap-3 mt-3">
         <label class="text-sm">类目ID：
-          <input id="cat-id" type="number" class="mt-1 w-full border rounded-xl p-2" placeholder="自动填充或手动输入" />
+          <input id="cat-id" type="number" class="mt-1 w-full border rounded-xl p-2" placeholder="自动填充" />
         </label>
-        <label class="text-sm">语言：
-          <select id="attr-lang" class="mt-1 w-full border rounded-xl p-2">
-            <option value="ZH_HANS">ZH_HANS</option>
-            <option value="RU">RU</option>
-            <option value="EN">EN</option>
-          </select>
+        <label class="text-sm">类型ID：
+          <input id="type-id" type="number" class="mt-1 w-full border rounded-xl p-2" placeholder="如有类型将自动填充" />
         </label>
-        <button id="btn-attr" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">获取属性</button>
+        <button id="btn-attr" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 mt-6">获取属性</button>
       </div>
 
       <pre id="attr-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
@@ -83,14 +73,12 @@
     {
       "offer_id": "YOUR_OFFER_ID",
       "category_id": 17037043,
+      "type_id": 970778135,
       "name": "示例商品标题",
       "price": "1990",
       "vat": "0",
       "description": "示例商品描述……",
-      "images": [{"file_name": "https://example.com/image.jpg"}],
-      "attributes": [
-        {"attribute_id": 85, "values": [{"value": "BrandName"}]}
-      ]
+      "images": [{"file_name": "https://example.com/image.jpg"}]
     }
   ]
 }'></textarea>
@@ -101,10 +89,13 @@
       </div>
       <pre id="upload-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
     </section>
+
+    <footer class="text-center text-xs text-gray-400 mt-10">
+      © 2025 Ozon Helper · 中文类目支持版
+    </footer>
   </div>
 
   <script>
-    // ====== 公共代理函数 ======
     const proxy = async (endpoint, body = {}, query = '') => {
       const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}${query || ''}`, {
         method: 'POST',
@@ -115,7 +106,6 @@
       return { ok: res.ok, status: res.status, data };
     };
 
-    // ====== 测试代理 ======
     document.getElementById('btn-ping').addEventListener('click', async () => {
       const out = document.getElementById('ping-out');
       out.textContent = '测试中…';
@@ -128,14 +118,13 @@
       }
     });
 
-    // ====== 获取类目树 ======
     let categoryTree = [];
+    let selectedTypeId = null;
 
     document.getElementById('btn-tree').addEventListener('click', async () => {
       const out = document.getElementById('tree-out');
-      const lang = document.getElementById('lang').value;
       out.textContent = '加载中…';
-      const { ok, status, data } = await proxy('/v1/description-category/tree', { language: lang });
+      const { ok, status, data } = await proxy('/v1/description-category/tree', { language: 'ZH_HANS' });
 
       out.textContent = JSON.stringify({ ok, status, data }, null, 2);
       if (!ok || !data?.result) return;
@@ -143,71 +132,95 @@
       categoryTree = data.result;
       document.getElementById('category-selects').classList.remove('hidden');
       document.getElementById('category-info').classList.remove('hidden');
-      document.getElementById('category-info').textContent = `✅ 读取成功，共 ${categoryTree.length} 个一级类目`;
+      document.getElementById('category-info').textContent = `✅ 已加载 ${categoryTree.length} 个一级类目`;
 
-      // 填充一级类目
-      const level1 = document.getElementById('level1');
-      level1.innerHTML = '<option value="">选择一级类目</option>';
+      const l1 = document.getElementById('level1');
+      l1.innerHTML = '<option value="">选择一级类目</option>';
       categoryTree.forEach(c => {
-        level1.innerHTML += `<option value="${c.description_category_id}">${c.category_name}</option>`;
+        l1.innerHTML += `<option value="${c.description_category_id}">${c.category_name}</option>`;
       });
+
       document.getElementById('level2').innerHTML = '<option value="">选择二级类目</option>';
-      document.getElementById('level3').innerHTML = '<option value="">选择三级类目</option>';
+      document.getElementById('level3').innerHTML = '<option value="">选择三级类目/类型</option>';
     });
 
-    // 二级、三级类目联动
+    // 一级 -> 二级
     document.getElementById('level1').addEventListener('change', e => {
+      selectedTypeId = null;
       const id = Number(e.target.value);
-      const selected = categoryTree.find(c => c.description_category_id === id);
-      const level2 = document.getElementById('level2');
-      level2.innerHTML = '<option value="">选择二级类目</option>';
-      document.getElementById('level3').innerHTML = '<option value="">选择三级类目</option>';
-      if (selected?.children) {
-        selected.children.forEach(c => {
-          level2.innerHTML += `<option value="${c.description_category_id}">${c.category_name}</option>`;
+      const sel1 = categoryTree.find(c => c.description_category_id === id);
+      const l2 = document.getElementById('level2');
+      const l3 = document.getElementById('level3');
+      l2.innerHTML = '<option value="">选择二级类目</option>';
+      l3.innerHTML = '<option value="">选择三级类目/类型</option>';
+      if (sel1?.children?.length) {
+        sel1.children.forEach(c => {
+          l2.innerHTML += `<option value="${c.description_category_id}">${c.category_name}</option>`;
         });
       }
     });
 
+    // 二级 -> 三级（类目或类型）
     document.getElementById('level2').addEventListener('change', e => {
+      selectedTypeId = null;
       const l1 = Number(document.getElementById('level1').value);
       const l1Item = categoryTree.find(c => c.description_category_id === l1);
       const id = Number(e.target.value);
-      const selected = l1Item?.children?.find(c => c.description_category_id === id);
-      const level3 = document.getElementById('level3');
-      level3.innerHTML = '<option value="">选择三级类目</option>';
-      if (selected?.children) {
-        selected.children.forEach(c => {
-          level3.innerHTML += `<option value="${c.description_category_id}">${c.category_name}</option>`;
+      const sel2 = l1Item?.children?.find(c => c.description_category_id === id);
+
+      const l3 = document.getElementById('level3');
+      l3.innerHTML = '<option value="">选择三级类目/类型</option>';
+      if (!sel2?.children?.length) return;
+
+      const first = sel2.children[0];
+      if ('description_category_id' in first) {
+        sel2.children.forEach(c => {
+          l3.innerHTML += `<option data-kind="category" value="${c.description_category_id}">${c.category_name}</option>`;
+        });
+      } else if ('type_id' in first) {
+        sel2.children.forEach(t => {
+          l3.innerHTML += `<option data-kind="type" value="${t.type_id}">${t.type_name}</option>`;
         });
       }
     });
 
+    // 第三级 -> 填入 category_id / type_id
     document.getElementById('level3').addEventListener('change', e => {
-      const id = e.target.value;
-      document.getElementById('cat-id').value = id;
+      const opt = e.target.selectedOptions[0];
+      if (!opt) return;
+      const kind = opt.dataset.kind;
+      if (kind === 'category') {
+        document.getElementById('cat-id').value = opt.value;
+        document.getElementById('type-id').value = '';
+        selectedTypeId = null;
+      } else if (kind === 'type') {
+        selectedTypeId = Number(opt.value);
+        document.getElementById('type-id').value = selectedTypeId;
+        const l2 = Number(document.getElementById('level2').value);
+        document.getElementById('cat-id').value = l2 || '';
+      }
     });
 
-    // ====== 获取属性 ======
+    // 获取属性
     document.getElementById('btn-attr').addEventListener('click', async () => {
       const out = document.getElementById('attr-out');
       out.textContent = '加载中…';
-      const cat = Number(document.getElementById('cat-id').value || 0);
-      const lang = document.getElementById('attr-lang').value;
-      const { ok, status, data } = await proxy('/v1/description-category/attribute', { category_id: cat, language: lang });
+      const category_id = Number(document.getElementById('cat-id').value || 0);
+      const body = { category_id, language: 'ZH_HANS' };
+      if (selectedTypeId) body.type_id = selectedTypeId;
+      const { ok, status, data } = await proxy('/v1/description-category/attribute', body);
       out.textContent = JSON.stringify({ ok, status, data }, null, 2);
     });
 
-    // ====== 上传商品 ======
+    // 上传商品
     document.getElementById('btn-upload').addEventListener('click', async () => {
       const out = document.getElementById('upload-out');
-      out.textContent = '上传中…';
       try {
-        const body = JSON.parse(document.getElementById('product-json').value || '{}');
+        const body = JSON.parse(document.getElementById('product-json').value);
         const { ok, status, data } = await proxy('/v3/product/import', body);
         out.textContent = JSON.stringify({ ok, status, data }, null, 2);
       } catch (e) {
-        out.textContent = 'JSON 解析失败：' + (e.message || e);
+        out.textContent = 'JSON 解析失败：' + e.message;
       }
     });
 
