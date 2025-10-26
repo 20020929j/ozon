@@ -115,53 +115,72 @@
     };
 
     async function renderAttrs() {
-      $attrLoading.classList.add("hidden");
-      $attrList.classList.remove("hidden");
-      $counter.textContent = `共 ${ATTRS.length} 个属性`;
+  $attrLoading.classList.add("hidden");
+  $attrList.classList.remove("hidden");
+  $counter.textContent = `共 ${ATTRS.length} 个属性`;
 
-      $attrCards.innerHTML = "";
-      for (const a of ATTRS) {
-        const card = document.createElement("div");
-        card.className = `border rounded p-3 ${a.is_required ? "required-card" : "optional-card"}`;
-        card.innerHTML = `
-          <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''}</div>
-          <div class="text-xs text-gray-500 mb-1">${a.description || ''}</div>
-          <div id="input-${a.id}">加载中...</div>
+  $attrCards.innerHTML = "";
+  for (const a of ATTRS) {
+    const card = document.createElement("div");
+    card.className = `border rounded p-3 ${a.is_required ? "required-card" : "optional-card"}`;
+    card.innerHTML = `
+      <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''}</div>
+      <div class="text-xs text-gray-500 mb-1">${a.description || ''}</div>
+      <div id="input-${a.id}">加载中...</div>
+    `;
+    $attrCards.appendChild(card);
+
+    // 如果存在字典（dictionary_id）
+    if (a.dictionary_id > 0) {
+      try {
+        const vals = (await ozon("/v1/description-category/attribute/values", {
+          attribute_id: Number(a.id),
+          description_category_id: Number($c2.value),
+          type_id: Number($c3.value),
+          limit: 2000,
+          language: LANG
+        })).result || [];
+
+        const container = document.getElementById(`input-${a.id}`);
+        container.innerHTML = `
+          <input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full mb-1" placeholder="已选值..." />
+          <input type="text" id="search-${a.id}" class="select-search" placeholder="搜索字典值..." />
+          <select id="dict-${a.id}" class="border rounded px-2 py-1 text-sm w-full" size="6">
+            ${vals.map(v => `<option value="${v.value}">${v.value}</option>`).join("")}
+          </select>
         `;
-        $attrCards.appendChild(card);
 
-        if (a.dictionary_id > 0) {
-          // ✅ 自动加载字典
-          try {
-            const vals = (await ozon("/v1/description-category/attribute/values", {
-              attribute_id: Number(a.id),
-              description_category_id: Number($c2.value),
-              type_id: Number($c3.value),
-              limit: 2000,
-              language: LANG
-            })).result || [];
-            const container = document.getElementById(`input-${a.id}`);
-            container.innerHTML = `
-              <input type="text" id="search-${a.id}" class="select-search" placeholder="搜索..."/>
-              <select id="dict-${a.id}" class="border rounded px-2 py-1 text-sm w-full" size="6">
-                ${vals.map(v => `<option value="${v.value}">${v.value}</option>`).join("")}
-              </select>`;
-            const search = document.getElementById(`search-${a.id}`);
-            const sel = document.getElementById(`dict-${a.id}`);
-            search.addEventListener("input", () => {
-              const term = search.value.toLowerCase();
-              Array.from(sel.options).forEach(opt => {
-                opt.style.display = opt.text.toLowerCase().includes(term) ? "block" : "none";
-              });
-            });
-          } catch {
-            document.getElementById(`input-${a.id}`).innerHTML = `<input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full" placeholder="输入值..."/>`;
-          }
-        } else {
-          document.getElementById(`input-${a.id}`).innerHTML = `<input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full" placeholder="输入值..."/>`;
-        }
+        const search = document.getElementById(`search-${a.id}`);
+        const sel = document.getElementById(`dict-${a.id}`);
+        const input = document.getElementById(`attr-${a.id}`);
+
+        // 🔍 搜索过滤功能
+        search.addEventListener("input", () => {
+          const term = search.value.toLowerCase();
+          Array.from(sel.options).forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(term) ? "block" : "none";
+          });
+        });
+
+        // ✅ 点击选项 → 自动填入输入框
+        sel.addEventListener("change", () => {
+          const selectedValues = Array.from(sel.selectedOptions).map(opt => opt.value);
+          input.value = selectedValues.join(", ");
+        });
+
+      } catch (e) {
+        document.getElementById(`input-${a.id}`).innerHTML =
+          `<input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full" placeholder="输入值..." />`;
       }
+    } else {
+      // 无字典：普通输入框
+      document.getElementById(`input-${a.id}`).innerHTML =
+        `<input id="attr-${a.id}" class="border rounded px-2 py-1 text-sm w-full" placeholder="输入值..." />`;
     }
+  }
+}
+
   </script>
 </body>
 </html>
+
