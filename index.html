@@ -177,57 +177,67 @@
       }
     }
 
-    const renderAttrs = () => {
-      const onlyReq = $onlyRequired.checked;
-      const kw = ($attrSearch.value || '').toLowerCase();
-      let list = ATTR_ALL.filter(a => (!onlyReq || a.is_required) && (!kw || a.name.toLowerCase().includes(kw)));
+   const renderAttrs = () => {
+  const onlyReq = $onlyRequired.checked;
+  const kw = ($attrSearch.value || '').toLowerCase();
+  let list = ATTR_ALL.filter(a => (!onlyReq || a.is_required) && (!kw || a.name.toLowerCase().includes(kw)));
 
-      $counter.textContent = `显示 ${list.length} / ${ATTR_ALL.length}`;
-      $attrCards.innerHTML = list.map(a => `
-        <div class="border rounded p-3">
-          <div class="flex justify-between">
-            <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : '<span class="text-green-600">(选填)</span>'}</div>
-            <div class="text-xs text-gray-500">类型: ${a.type} · ID: ${a.id}</div>
-          </div>
-          <div class="text-xs text-gray-500 mt-1">${a.description || ''}</div>
-          ${a.dictionary_id > 0 ? `<button data-dict="${a.id}" class="mt-2 text-xs px-2 py-1 bg-indigo-600 text-white rounded">加载字典</button><div id="dict-${a.id}" class="mt-2 text-xs text-gray-600"></div>` : ''}
-        </div>
-      `).join('');
+  $counter.textContent = `显示 ${list.length} / ${ATTR_ALL.length}`;
+  $attrCards.innerHTML = list.map(a => `
+    <div class="border rounded p-3">
+      <div class="flex justify-between">
+        <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : '<span class="text-green-600">(选填)</span>'}</div>
+        <div class="text-xs text-gray-500">类型: ${a.type} · ID: ${a.id}</div>
+      </div>
+      <div class="text-xs text-gray-500 mt-1">${a.description || ''}</div>
 
-      document.querySelectorAll('[data-dict]').forEach(btn => {
-        btn.onclick = async () => {
-          const attrId = btn.dataset.dict;
-          const box = document.getElementById('dict-' + attrId);
-          box.innerHTML = '加载中...';
-          try {
-            const resp = await ozon('/v1/description-category/attribute/values', {
-              attribute_id: Number(attrId),
-              description_category_id: currentC2,
-              type_id: currentType,
-              limit: 2000,
-              language: LANG
-            });
-            const vals = resp.result || [];
-            if (!vals.length) return box.innerHTML = '暂无字典';
-            const select = document.createElement('select');
-            select.className = 'border rounded px-2 py-1 text-xs';
-            select.innerHTML = `<option value="">请选择</option>` + vals.map(v => `<option value="${v.value}">${v.value}</option>`).join('');
-            const input = document.createElement('input');
-            input.className = 'border ml-2 px-2 py-1 text-xs rounded';
-            input.placeholder = '已选值';
-            select.onchange = () => input.value = select.value;
-            box.innerHTML = '';
-            box.appendChild(select);
-            box.appendChild(input);
-          } catch (e) {
-            box.innerHTML = '❌ 加载失败：' + e.message;
-          }
-        };
-      });
+      <div class="mt-2 flex items-center gap-2">
+        ${
+          a.dictionary_id > 0
+            ? `<button data-dict="${a.id}" data-dictid="${a.dictionary_id}" class="text-xs px-2 py-1 bg-indigo-600 text-white rounded">加载字典</button>
+               <div id="dict-${a.id}" class="text-xs text-gray-600"></div>`
+            : `<input id="val-${a.id}" type="text" placeholder="请输入值..." class="border px-2 py-1 rounded text-sm w-full" />`
+        }
+      </div>
+    </div>
+  `).join('');
+     
+
+        document.querySelectorAll('[data-dict]').forEach(btn => {
+    btn.onclick = async () => {
+      const attrId = btn.dataset.dict;
+      const box = document.getElementById('dict-' + attrId);
+      box.innerHTML = '加载中...';
+      try {
+        const resp = await ozon('/v1/description-category/attribute/values', {
+          attribute_id: Number(attrId),
+          description_category_id: currentC2,
+          type_id: currentType,
+          limit: 2000,
+          language: LANG
+        });
+        const vals = resp.result || [];
+        if (!vals.length) return box.innerHTML = '暂无字典';
+           const select = document.createElement('select');
+        select.className = 'border rounded px-2 py-1 text-xs';
+        select.innerHTML = `<option value="">请选择</option>` + vals.map(v => `<option value="${v.value}">${v.value}</option>`).join('');
+        const input = document.createElement('input');
+        input.className = 'border ml-2 px-2 py-1 text-xs rounded';
+        input.placeholder = '已选值';
+        select.onchange = () => input.value = select.value;
+        input.id = `val-${attrId}`;
+        box.innerHTML = '';
+        box.appendChild(select);
+        box.appendChild(input);
+      } catch (e) {
+        box.innerHTML = '❌ 加载失败：' + e.message;
+      }
     };
-
+  });
+};
     $onlyRequired.onchange = renderAttrs;
     $attrSearch.oninput = renderAttrs;
   </script>
 </body>
 </html>
+
