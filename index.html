@@ -3,63 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ozon 智能上架助手 v2 中文类目版</title>
+  <title>Ozon 类目选择助手 v3</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-6xl mx-auto p-6">
-    <header class="mb-6">
-      <h1 class="text-3xl font-bold">Ozon 智能上架助手 v2</h1>
-      <p class="text-sm text-gray-600 mt-1">通过 Vercel 代理安全调用 Ozon Seller API · 支持中文类目</p>
-    </header>
+    <h1 class="text-2xl font-bold mb-4">Ozon 类目树 - 中文三级下拉选择</h1>
 
-    <!-- 连接状态 -->
-    <section class="mb-6">
-      <div class="p-4 rounded-2xl bg-white shadow-sm">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="font-semibold">连接状态</h2>
-            <p class="text-xs text-gray-500">后端通过环境变量 OZON_CLIENT_ID 与 OZON_API_KEY 访问 Ozon API</p>
-          </div>
-          <button id="btn-ping" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">测试代理</button>
-        </div>
-        <pre id="ping-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-48"></pre>
-      </div>
-    </section>
+    <div class="mb-4">
+      <label class="text-sm">语言：</label>
+      <select id="lang" class="border rounded-xl p-2">
+        <option value="ZH_HANS">ZH_HANS（中文）</option>
+        <option value="RU">RU（俄语）</option>
+      </select>
+      <button id="btn-tree" class="ml-2 px-4 py-2 bg-blue-600 text-white rounded-xl">获取类目树</button>
+    </div>
 
-    <!-- 获取类目树 -->
-    <section class="p-4 rounded-2xl bg-white shadow-sm">
-      <h3 class="font-semibold mb-1">① 获取类目树</h3>
-      <p class="text-xs text-gray-500">POST /v1/description-category/tree</p>
-      <div class="flex items-center gap-3 mt-2">
-        <label class="text-sm">
-          语言：
-          <select id="lang" class="ml-1 border rounded-xl p-2">
-            <option value="ZH_HANS">ZH_HANS（中文）</option>
-            <option value="RU">RU（俄语）</option>
-            <option value="EN">EN（英语）</option>
-          </select>
-        </label>
-        <button id="btn-tree" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">获取类目树</button>
-      </div>
+    <div id="category-selectors" class="grid grid-cols-3 gap-4 hidden">
+      <select id="level1" class="border rounded-xl p-2"></select>
+      <select id="level2" class="border rounded-xl p-2"></select>
+      <select id="level3" class="border rounded-xl p-2"></select>
+    </div>
 
-      <!-- 三级联动下拉 -->
-      <div id="category-selectors" class="grid md:grid-cols-3 gap-3 mt-4 hidden">
-        <select id="level1" class="border rounded-xl p-2"></select>
-        <select id="level2" class="border rounded-xl p-2"></select>
-        <select id="level3" class="border rounded-xl p-2"></select>
-      </div>
-
-      <p id="tree-status" class="text-xs text-gray-500 mt-2"></p>
-      <pre id="tree-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-80"></pre>
-    </section>
-
-    <footer class="text-center text-xs text-gray-400 mt-10">
-      © 2025 Ozon Helper · 本工具仅供自动化研究使用
-    </footer>
+    <p id="status" class="mt-3 text-sm text-gray-600"></p>
+    <pre id="tree-out" class="mt-4 bg-gray-100 rounded-xl p-3 text-xs overflow-auto max-h-80"></pre>
   </div>
 
   <script>
+    // 后端代理请求
     const proxy = async (endpoint, body = {}) => {
       const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}`, {
         method: 'POST',
@@ -70,82 +41,62 @@
       return { ok: res.ok, status: res.status, data };
     };
 
-    document.getElementById('btn-ping').addEventListener('click', async () => {
-      const out = document.getElementById('ping-out');
-      out.textContent = '测试中...';
-      try {
-        const res = await fetch('/api/ozon-proxy');
-        const data = await res.json();
-        out.textContent = JSON.stringify(data, null, 2);
-      } catch (e) {
-        out.textContent = e.message || String(e);
-      }
-    });
+    const fillOptions = (select, list, labelKey, idKey, placeholder) => {
+      select.innerHTML = `<option value="">${placeholder}</option>`;
+      list.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item[idKey];
+        opt.textContent = item[labelKey];
+        select.appendChild(opt);
+      });
+    };
 
-    // 获取类目树并显示下拉框
-    document.getElementById('btn-tree').addEventListener('click', async () => {
-      const out = document.getElementById('tree-out');
-      const statusEl = document.getElementById('tree-status');
-      out.textContent = '请求中...';
-      statusEl.textContent = '';
-      const language = document.getElementById('lang').value;
+    document.getElementById("btn-tree").addEventListener("click", async () => {
+      const out = document.getElementById("tree-out");
+      const status = document.getElementById("status");
+      const lang = document.getElementById("lang").value;
+      out.textContent = "加载中...";
+      status.textContent = "";
 
-      const { ok, status, data } = await proxy('/v1/description-category/tree', { language });
+      const { ok, data } = await proxy("/v1/description-category/tree", { language: lang });
       out.textContent = JSON.stringify(data, null, 2);
 
       if (!ok || !data?.result) {
-        statusEl.textContent = `请求失败 (${status})`;
+        status.textContent = "❌ 获取失败，请检查代理或 API KEY";
         return;
       }
 
-      // ✅ 显示下拉框
-      document.getElementById('category-selectors').classList.remove('hidden');
-      statusEl.textContent = `获取成功，共 ${data.result.length} 个一级类目`;
-      window.ozonTree = data.result;
+      // 显示三级下拉
+      document.getElementById("category-selectors").classList.remove("hidden");
+      const level1 = document.getElementById("level1");
+      const level2 = document.getElementById("level2");
+      const level3 = document.getElementById("level3");
 
-      const level1 = document.getElementById('level1');
-      const level2 = document.getElementById('level2');
-      const level3 = document.getElementById('level3');
+      fillOptions(level1, data.result, "category_name", "description_category_id", "选择一级类目");
+      fillOptions(level2, [], "category_name", "description_category_id", "选择二级类目");
+      fillOptions(level3, [], "type_name", "type_id", "选择三级类目");
 
-      const fillOptions = (select, list, labelKey, idKey, placeholder) => {
-        select.innerHTML = `<option value="">${placeholder}</option>`;
-        list.forEach(item => {
-          const opt = document.createElement('option');
-          opt.value = item[idKey];
-          opt.textContent = item[labelKey];
-          select.appendChild(opt);
-        });
-      };
-
-      // 填充一级类目
-      fillOptions(level1, data.result, 'category_name', 'description_category_id', '选择一级类目');
-      fillOptions(level2, [], 'category_name', 'description_category_id', '选择二级类目');
-      fillOptions(level3, [], 'type_name', 'type_id', '选择三级类目');
-
-      // 一级变化
+      // 一级联动
       level1.onchange = () => {
-        const selected = data.result.find(c => c.description_category_id == level1.value);
-        const children = selected?.children || [];
-        fillOptions(level2, children, 'category_name', 'description_category_id', '选择二级类目');
-        fillOptions(level3, [], 'type_name', 'type_id', '选择三级类目');
+        const first = data.result.find(x => x.description_category_id == level1.value);
+        fillOptions(level2, first?.children || [], "category_name", "description_category_id", "选择二级类目");
+        fillOptions(level3, [], "type_name", "type_id", "选择三级类目");
       };
 
-      // 二级变化
+      // 二级联动
       level2.onchange = () => {
-        const first = data.result.find(c => c.description_category_id == level1.value);
-        const second = first?.children?.find(c => c.description_category_id == level2.value);
-        const types = second?.children?.map(t => ({
-          type_id: t.type_id,
-          type_name: t.type_name
-        })) || [];
-        fillOptions(level3, types, 'type_name', 'type_id', '选择三级类目');
+        const first = data.result.find(x => x.description_category_id == level1.value);
+        const second = first?.children?.find(y => y.description_category_id == level2.value);
+        fillOptions(level3, second?.children || [], "type_name", "type_id", "选择三级类目");
       };
 
-      // 三级变化
+      // 第三级变化
       level3.onchange = () => {
-        const id = level3.value;
-        if (id) {
-          statusEl.textContent = `✅ 已选择第三级类目 ID: ${id}`;
+        const val = level3.value;
+        if (val) {
+          status.textContent = `✅ 已选择第三级类目 ID: ${val}`;
+        } else {
+          status.textContent = "";
         }
       };
     });
