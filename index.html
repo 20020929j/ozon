@@ -1,127 +1,139 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ozon 智能上架助手 v1</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-900">
-  <div class="max-w-6xl mx-auto p-6">
-    <header class="mb-6">
-      <h1 class="text-3xl font-bold">Ozon 智能上架助手 v1</h1>
-      <p class="text-sm text-gray-600 mt-1">通过 Vercel 代理安全调用 Ozon Seller API · 界面仅中文</p>
-    </header>
-
-    <!-- 连接状态 -->
-    <section class="mb-6">
-      <div class="p-4 rounded-2xl bg-white shadow-sm">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="font-semibold">连接状态</h2>
-            <p class="text-xs text-gray-500">后端通过环境变量 OZON_CLIENT_ID 与 OZON_API_KEY 访问 Ozon API</p>
-          </div>
-          <button id="btn-ping" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">测试代理</button>
-        </div>
-        <pre id="ping-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-48"></pre>
-      </div>
-    </section>
-
-    <!-- 快捷操作 -->
-    <section class="grid md:grid-cols-2 gap-6">
-      <!-- 获取类目树 -->
-      <div class="p-4 rounded-2xl bg-white shadow-sm">
-        <h3 class="font-semibold">① 获取类目树</h3>
-        <p class="text-xs text-gray-500">POST /v2/description-category/tree</p>
-        <div class="mt-2 space-y-2">
-          <label class="block text-sm">语言：
-            <select id="lang" class="mt-1 w-full border rounded-xl p-2">
-              <option value="RU">RU</option>
-              <option value="EN">EN</option>
-            </select>
-          </label>
-          <button id="btn-tree" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">获取类目树</button>
-        </div>
-        <pre id="tree-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
-      </div>
-
-      <!-- 获取类目属性 -->
-      <div class="p-4 rounded-2xl bg-white shadow-sm">
-        <h3 class="font-semibold">② 获取类目属性</h3>
-        <p class="text-xs text-gray-500">POST /v1/description-category/attribute</p>
-        <div class="mt-2 grid grid-cols-1 gap-2">
-          <label class="text-sm">类目ID：
-            <input id="cat-id" type="number" class="mt-1 w-full border rounded-xl p-2" placeholder="例如 17037043" />
-          </label>
-          <label class="text-sm">语言：
-            <select id="attr-lang" class="mt-1 w-full border rounded-xl p-2">
-              <option value="RU">RU</option>
-              <option value="EN">EN</option>
-            </select>
-          </label>
-          <button id="btn-attr" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">获取属性</button>
-        </div>
-        <pre id="attr-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
-      </div>
-    </section>
-
-    <!-- 上传商品 -->
-    <section class="mt-6 p-4 rounded-2xl bg-white shadow-sm">
-      <h3 class="font-semibold">③ 上传商品</h3>
-      <p class="text-xs text-gray-500">POST /v3/product/import</p>
-      <textarea id="product-json" class="mt-2 w-full border rounded-xl p-3 text-xs h-48" placeholder='{
-  "items": [
-    {
-      "offer_id": "YOUR_OFFER_ID",
-      "category_id": 0,
-      "name": "商品标题（俄语/中文皆可）",
-      "price": "1990",
-      "vat": "0",
-      "description": "你的商品描述……",
-      "images": [
-        {"file_name": "https://example.com/your-image.jpg"}
-      ],
-      "attributes": [
-        {"attribute_id": 85, "values": [{"value": "BrandName"}]}
-      ]
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f7f8fa;
+      padding: 20px;
+      color: #222;
     }
-  ]
-}'></textarea>
-      <div class="mt-3 flex gap-3">
-        <button id="btn-upload" class="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700">上传商品</button>
-        <button id="btn-format" class="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300">格式化 JSON</button>
-      </div>
-      <pre id="upload-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
-    </section>
+    h1 { margin-bottom: 5px; }
+    .section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 25px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    button:hover { background-color: #1e40af; }
+    textarea {
+      width: 100%;
+      height: 160px;
+      border-radius: 6px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-family: monospace;
+      resize: vertical;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    select, input {
+      padding: 6px;
+      margin-left: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
 
-    <!-- 自定义请求 -->
-    <section class="mt-6 p-4 rounded-2xl bg-white shadow-sm">
-      <h3 class="font-semibold">④ 自定义请求（高级）</h3>
-      <p class="text-xs text-gray-500">可直接调用任意允许的 Ozon 接口</p>
-      <div class="grid md:grid-cols-2 gap-3 mt-2">
-        <label class="text-sm">Endpoint：
-          <input id="custom-endpoint" class="mt-1 w-full border rounded-xl p-2" placeholder="/v1/product/import/prices" />
-        </label>
-        <label class="text-sm">Query 参数：
-          <input id="custom-query" class="mt-1 w-full border rounded-xl p-2" placeholder="?limit=100" />
-        </label>
-      </div>
-      <textarea id="custom-body" class="mt-3 w-full border rounded-xl p-3 text-xs h-40" placeholder='{"example": true}'></textarea>
-      <div class="mt-3">
-        <button id="btn-custom" class="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">发送请求</button>
-      </div>
-      <pre id="custom-out" class="mt-3 text-xs bg-gray-100 p-3 rounded-xl overflow-auto max-h-72"></pre>
-    </section>
+  <h1>Ozon 智能上架助手 v1</h1>
+  <p>通过 Vercel 代理安全调用 Ozon Seller API · 界面仅中文</p>
 
-    <footer class="text-center text-xs text-gray-400 mt-10">
-      © 2025 Ozon Helper · 本工具仅供自动化研究使用
-    </footer>
+  <!-- 连接状态 -->
+  <div class="section">
+    <h3>连接状态</h3>
+    <button id="btn-ping">测试代理</button>
+    <pre id="ping-out">等待测试...</pre>
   </div>
 
-  <!-- JS逻辑 -->
+  <!-- 获取类目树 -->
+  <div class="section">
+    <h3>① 获取类目树</h3>
+    <p>POST /v2/description-category/tree</p>
+    语言:
+    <select id="lang">
+      <option value="RU">RU</option>
+      <option value="EN">EN</option>
+    </select>
+    <button id="btn-tree">获取类目树</button>
+    <pre id="tree-out"></pre>
+  </div>
+
+  <!-- 获取类目属性 -->
+  <div class="section">
+    <h3>② 获取类目属性</h3>
+    <p>POST /v1/description-category/attribute</p>
+    类目ID: <input id="cat-id" placeholder="例如 17037043">
+    语言:
+    <select id="attr-lang">
+      <option value="RU">RU</option>
+      <option value="EN">EN</option>
+    </select>
+    <button id="btn-attr">获取属性</button>
+    <pre id="attr-out"></pre>
+  </div>
+
+  <!-- 上传商品 -->
+  <div class="section">
+    <h3>③ 上传商品</h3>
+    <p>POST /v3/product/import</p>
+    <textarea id="product-json" placeholder='{
+  "items": [{
+    "offer_id": "YOUR_OFFER_ID",
+    "category_id": 0,
+    "name": "商品名称（俄语/中文皆可）",
+    "price": "1990",
+    "vat": "0",
+    "description": "你的商品描述……",
+    "images": [{"file_name": "https://example.com/your-image.jpg"}]
+  }]
+}'></textarea>
+    <button id="btn-upload">上传商品</button>
+    <pre id="upload-out"></pre>
+  </div>
+
+  <!-- 格式化JSON -->
+  <div class="section">
+    <h3>④ 格式化 JSON</h3>
+    <button id="btn-format">格式化 JSON</button>
+  </div>
+
+  <!-- 自定义请求 -->
+  <div class="section">
+    <h3>⑤ 自定义请求</h3>
+    <p>支持任意 Ozon API 路径（例如 /v2/posting/fbs/list）</p>
+    Endpoint: <input id="custom-endpoint" placeholder="/v2/product/info" style="width:300px">
+    <br><br>
+    Query参数 (可留空): <input id="custom-query" placeholder='?page=1&limit=5' style="width:300px">
+    <br><br>
+    请求体（JSON）:
+    <textarea id="custom-body">{}</textarea>
+    <button id="btn-custom">发送请求</button>
+    <pre id="custom-out"></pre>
+  </div>
+
   <script>
-    const proxy = async (endpoint, body = {}, query = '') => {
-      const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}${query || ''}`, {
+    // 代理统一调用
+    const proxy = async (endpoint, body = {}, query = "") => {
+      const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}${query}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -133,7 +145,7 @@
     // 测试代理
     document.getElementById('btn-ping').addEventListener('click', async () => {
       const out = document.getElementById('ping-out');
-      out.textContent = '测试中…';
+      out.textContent = '测试中...';
       try {
         const res = await fetch('/api/ozon-proxy');
         const data = await res.json();
@@ -146,52 +158,66 @@
     // 获取类目树
     document.getElementById('btn-tree').addEventListener('click', async () => {
       const out = document.getElementById('tree-out');
-      out.textContent = '请求中…';
+      out.textContent = '请求中...';
       const language = document.getElementById('lang').value;
       const body = { language };
-      const { ok, status, data } = await proxy('/v1/description-category/attribute', body);
-      out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+      try {
+        const { ok, status, data } = await proxy('/v2/description-category/tree', body);
+        out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+      } catch (e) {
+        out.textContent = '请求失败: ' + (e.message || e);
+      }
     });
 
     // 获取类目属性
     document.getElementById('btn-attr').addEventListener('click', async () => {
       const out = document.getElementById('attr-out');
-      out.textContent = '请求中…';
+      out.textContent = '请求中...';
       const category_id = Number(document.getElementById('cat-id').value || 0);
       const language = document.getElementById('attr-lang').value;
       const body = { category_id, language };
-      const { ok, status, data } = await proxy('/v1/description-category/attribute', body);
-      out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+      try {
+        const { ok, status, data } = await proxy('/v1/description-category/attribute', body);
+        out.textContent = JSON.stringify({ ok, status, data }, null, 2);
+      } catch (e) {
+        out.textContent = '请求失败: ' + (e.message || e);
+      }
     });
 
     // 上传商品
     document.getElementById('btn-upload').addEventListener('click', async () => {
       const out = document.getElementById('upload-out');
-      out.textContent = '上传中…';
+      out.textContent = '上传中...';
       try {
         const body = JSON.parse(document.getElementById('product-json').value || '{}');
         const { ok, status, data } = await proxy('/v3/product/import', body);
         out.textContent = JSON.stringify({ ok, status, data }, null, 2);
       } catch (e) {
-        out.textContent = 'JSON 解析失败：' + (e.message || e);
+        out.textContent = 'JSON 解析失败: ' + (e.message || e);
       }
     });
 
     // 格式化 JSON
     document.getElementById('btn-format').addEventListener('click', () => {
       const ta = document.getElementById('product-json');
-      try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); } catch {}
+      try {
+        ta.value = JSON.stringify(JSON.parse(ta.value), null, 2);
+      } catch {
+        alert('JSON 格式错误');
+      }
     });
 
     // 自定义请求
     document.getElementById('btn-custom').addEventListener('click', async () => {
       const out = document.getElementById('custom-out');
-      out.textContent = '请求中…';
+      out.textContent = '请求中...';
       const endpoint = document.getElementById('custom-endpoint').value.trim();
       const query = document.getElementById('custom-query').value.trim();
       let body = {};
-      try { body = JSON.parse(document.getElementById('custom-body').value || '{}'); } catch (e) {
-        out.textContent = 'JSON 解析失败：' + (e.message || e);
+      try {
+        body = JSON.parse(document.getElementById('custom-body').value || '{}');
+      } catch (e) {
+        out.textContent = 'JSON 解析失败: ' + (e.message || e);
         return;
       }
       const { ok, status, data } = await proxy(endpoint, body, query);
@@ -200,5 +226,3 @@
   </script>
 </body>
 </html>
-
-
