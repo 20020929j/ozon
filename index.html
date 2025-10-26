@@ -1,109 +1,95 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ozon 类目树 - 中文三级下拉选择</title>
+  <meta charset="UTF-8">
+  <title>Ozon 类目树 - 中文三级下拉选择（带缓存）</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <div class="max-w-6xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-4">Ozon 类目树 - 中文三级下拉选择</h1>
+  <div class="max-w-6xl mx-auto p-6 space-y-6">
+    <h1 class="text-3xl font-bold">Ozon 类目树 - 中文三级下拉选择</h1>
 
-    <div class="mb-4">
-      <label class="text-sm">语言：</label>
-      <select id="lang" class="border rounded-xl p-2">
-        <option value="ZH_HANS">ZH_HANS（中文）</option>
-        <option value="RU">RU（俄语）</option>
+    <!-- 控制区 -->
+    <div class="flex items-center gap-3">
+      <select id="lang" class="border rounded-lg p-2">
+        <option value="ZH_HANS">ZH_HANS (中文)</option>
+        <option value="RU">RU (俄语)</option>
       </select>
-      <button id="btn-tree" class="ml-2 px-4 py-2 bg-blue-600 text-white rounded-xl">获取类目树</button>
+      <button id="btn-tree" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">获取类目树</button>
+      <button id="btn-refresh" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">强制刷新类目树</button>
+      <span id="status" class="text-sm text-gray-600"></span>
     </div>
 
-    <div id="category-selectors" class="grid grid-cols-3 gap-4 hidden">
-      <select id="level1" class="border rounded-xl p-2"></select>
-      <select id="level2" class="border rounded-xl p-2"></select>
-      <select id="level3" class="border rounded-xl p-2"></select>
+    <!-- 三级类目选择 -->
+    <div class="flex gap-3">
+      <select id="lvl1" class="border rounded-lg p-2 w-1/3"><option>选择一级类目</option></select>
+      <select id="lvl2" class="border rounded-lg p-2 w-1/3"><option>选择二级类目</option></select>
+      <select id="lvl3" class="border rounded-lg p-2 w-1/3"><option>选择三级类目</option></select>
     </div>
 
-    <p id="status" class="mt-3 text-sm text-gray-600"></p>
-    <pre id="tree-out" class="mt-4 bg-gray-100 rounded-xl p-3 text-xs overflow-auto max-h-80"></pre>
+    <!-- 输出 -->
+    <pre id="out" class="bg-gray-100 p-3 rounded-lg text-xs overflow-auto max-h-96"></pre>
   </div>
 
   <script>
-    // 代理请求
-    const proxy = async (endpoint, body = {}) => {
-      const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}`, {
+    const proxy = async (endpoint, body = {}, refresh = false) => {
+      const res = await fetch(`/api/ozon-proxy?endpoint=${encodeURIComponent(endpoint)}&refresh=${refresh}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      const data = await res.json().catch(() => ({}));
-      return { ok: res.ok, status: res.status, data };
+      return res.json();
     };
 
-    // 填充下拉选项
-    const fillOptions = (select, list, labelKey, idKey, placeholder) => {
-      select.innerHTML = `<option value="">${placeholder}</option>`;
-      list.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item[idKey];
-        opt.textContent = item[labelKey];
-        select.appendChild(opt);
-      });
-    };
+    const out = document.getElementById('out');
+    const statusEl = document.getElementById('status');
 
-    document.getElementById("btn-tree").addEventListener("click", async () => {
-      const out = document.getElementById("tree-out");
-      const status = document.getElementById("status");
-      const lang = document.getElementById("lang").value;
-      out.textContent = "加载中...";
-      status.textContent = "";
+    let categoryTree = [];
 
-      const { ok, data } = await proxy("/v1/description-category/tree", { language: lang });
-      out.textContent = JSON.stringify(data, null, 2);
-
-      // ✅ 修正：兼容 data.data.result 层级
-      const result = data?.data?.result || data?.result;
-
-      if (!ok || !result) {
-        status.innerHTML = "❌ 获取失败，请检查代理或 API KEY";
+    async function loadCategoryTree(refresh = false) {
+      out.textContent = "正在获取类目树...";
+      const language = document.getElementById('lang').value;
+      const { ok, fromCache, data } = await proxy('/v1/description-category/tree', { language }, refresh);
+      if (!ok) {
+        out.textContent = JSON.stringify(data, null, 2);
         return;
       }
+      categoryTree = data.result || [];
+      statusEl.textContent = fromCache ? "✅ 已从缓存加载" : "🆕 从 API 获取";
+      out.textContent = JSON.stringify(categoryTree.slice(0, 3), null, 2); // 显示部分示例
+      renderLevel(1, categoryTree);
+    }
 
-      // 显示三级下拉
-      document.getElementById("category-selectors").classList.remove("hidden");
-      const level1 = document.getElementById("level1");
-      const level2 = document.getElementById("level2");
-      const level3 = document.getElementById("level3");
+    function renderLevel(level, list) {
+      const s1 = document.getElementById('lvl1');
+      const s2 = document.getElementById('lvl2');
+      const s3 = document.getElementById('lvl3');
+      if (level === 1) {
+        s1.innerHTML = list.map(i => `<option value="${i.description_category_id}">${i.category_name}</option>`).join('');
+        s1.addEventListener('change', () => {
+          const id = s1.value;
+          const selected = list.find(i => i.description_category_id == id);
+          renderLevel(2, selected?.children || []);
+        });
+      } else if (level === 2) {
+        s2.innerHTML = list.map(i => `<option value="${i.description_category_id}">${i.category_name}</option>`).join('');
+        s2.addEventListener('change', () => {
+          const id = s2.value;
+          const selected = list.find(i => i.description_category_id == id);
+          renderLevel(3, selected?.children || []);
+        });
+      } else if (level === 3) {
+        s3.innerHTML = list.map(i => `<option value="${i.type_id}">${i.type_name || i.category_name}</option>`).join('');
+        s3.addEventListener('change', () => {
+          const id = s3.value;
+          const item = list.find(i => i.type_id == id);
+          out.textContent = JSON.stringify(item, null, 2);
+        });
+      }
+    }
 
-      fillOptions(level1, result, "category_name", "description_category_id", "选择一级类目");
-      fillOptions(level2, [], "category_name", "description_category_id", "选择二级类目");
-      fillOptions(level3, [], "type_name", "type_id", "选择三级类目");
-
-      // 一级联动
-      level1.onchange = () => {
-        const first = result.find(x => x.description_category_id == level1.value);
-        fillOptions(level2, first?.children || [], "category_name", "description_category_id", "选择二级类目");
-        fillOptions(level3, [], "type_name", "type_id", "选择三级类目");
-      };
-
-      // 二级联动
-      level2.onchange = () => {
-        const first = result.find(x => x.description_category_id == level1.value);
-        const second = first?.children?.find(y => y.description_category_id == level2.value);
-        fillOptions(level3, second?.children || [], "type_name", "type_id", "选择三级类目");
-      };
-
-      // 第三级变化
-      level3.onchange = () => {
-        const val = level3.value;
-        if (val) {
-          status.textContent = `✅ 已选择第三级类目 ID: ${val}`;
-        } else {
-          status.textContent = "";
-        }
-      };
-    });
+    document.getElementById('btn-tree').addEventListener('click', () => loadCategoryTree(false));
+    document.getElementById('btn-refresh').addEventListener('click', () => loadCategoryTree(true));
   </script>
 </body>
 </html>
