@@ -1,130 +1,61 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>Ozon 类目属性助手 v4.1_stable（含立即发布）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>Ozon 类目属性助手 v4.2 stable optimized</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
 <body class="bg-gray-50 text-gray-900">
-  <div class="max-w-7xl mx-auto p-6 space-y-6">
-    <h1 class="text-2xl font-bold">Ozon 类目属性助手 v4.1_stable</h1>
+  <div class="max-w-7xl mx-auto p-6 space-y-5">
+    <h1 class="text-2xl font-bold mb-2">Ozon 类目属性助手 v4.2 stable optimized</h1>
 
-    <!-- 顶部操作栏 -->
+    <!-- 顶部栏 -->
     <div class="flex flex-wrap gap-3 items-center">
       <button id="btnPing" class="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-800">
         🔍 验证 API 连接
       </button>
-      <span id="pingStatus" class="text-sm whitespace-pre-wrap"></span>
+      <span id="pingStatus" class="text-sm text-gray-600"></span>
 
-      <label class="ml-6 text-sm">语言：</label>
-      <select id="lang" class="border rounded px-3 py-2">
+      <label class="ml-4 text-sm">语言：</label>
+      <select id="lang" class="border rounded px-2 py-1">
         <option value="ZH_HANS">中文</option>
         <option value="RU">俄语</option>
         <option value="EN">英语</option>
       </select>
 
-      <button id="btnLoadTree" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
-        获取类目树
-      </button>
-      <button id="btnForceReload" class="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700">
-        清除缓存
-      </button>
+      <button id="btnLoadTree" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">获取类目树</button>
+      <button id="btnForceReload" class="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700">清除缓存</button>
 
       <label class="inline-flex items-center ml-4">
-        <input id="onlyRequired" type="checkbox" class="mr-2" /> 仅显示必填
+        <input id="onlyRequired" type="checkbox" class="mr-2">仅显示必填
       </label>
     </div>
 
-    <!-- 类目下拉 -->
+    <!-- 类目选择 -->
     <div class="grid md:grid-cols-3 gap-3">
-      <select id="c1" class="w-full border rounded px-3 py-2"><option>请获取类目树...</option></select>
+      <select id="c1" class="w-full border rounded px-3 py-2"><option>请选择一级类目...</option></select>
       <select id="c2" class="w-full border rounded px-3 py-2"></select>
       <select id="c3" class="w-full border rounded px-3 py-2"></select>
     </div>
 
     <div id="tips" class="text-sm text-gray-500">请选择二级类目和三级类型后自动获取属性</div>
 
-    <!-- 属性面板 -->
+    <!-- 属性区域 -->
     <div id="attrPanel" class="bg-white rounded-2xl shadow p-4">
       <div id="attrLoading" class="text-sm text-gray-600">尚未加载属性...</div>
       <div id="attrList" class="hidden">
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex justify-between items-center mb-3">
           <div class="text-sm text-gray-500"><span id="counter"></span></div>
-          <input id="attrSearch" type="text" class="border rounded px-3 py-1 text-sm" placeholder="搜索属性..." />
+          <input id="attrSearch" type="text" placeholder="搜索属性..." class="border rounded px-3 py-1 text-sm w-60">
         </div>
         <div id="attrCards" class="grid gap-3"></div>
       </div>
     </div>
-
-    <!-- 🆕 单个商品上传模块 -->
-    <div class="bg-white rounded-2xl shadow p-4">
-      <h2 class="font-semibold text-lg mb-3">🚀 创建或更新单个商品（/v3/product/import）</h2>
-
-      <div class="grid md:grid-cols-2 gap-3">
-        <input id="offerId" class="border rounded px-3 py-2" placeholder="Offer ID（必填）">
-        <input id="title" class="border rounded px-3 py-2" placeholder="商品标题（必填）">
-        <input id="price" type="number" class="border rounded px-3 py-2" placeholder="价格（必填）">
-        <select id="currency" class="border rounded px-3 py-2">
-          <option>RUB</option><option>CNY</option><option>USD</option>
-        </select>
-        <input id="barcode" class="border rounded px-3 py-2" placeholder="条码">
-        <div class="flex gap-1">
-          <input id="depth" type="number" class="w-1/3 border rounded px-2 py-2" placeholder="长(cm)">
-          <input id="width" type="number" class="w-1/3 border rounded px-2 py-2" placeholder="宽(cm)">
-          <input id="height" type="number" class="w-1/3 border rounded px-2 py-2" placeholder="高(cm)">
-        </div>
-        <input id="weight" type="number" class="border rounded px-3 py-2" placeholder="重量(kg)">
-        <input id="primaryImage" class="border rounded px-3 py-2" placeholder="主图URL">
-        <textarea id="moreImages" class="border rounded px-3 py-2 h-20" placeholder="更多图片URL（每行一条）"></textarea>
-        <textarea id="singleDesc" class="border rounded px-3 py-2 h-24 md:col-span-2" placeholder="商品描述（支持HTML）"></textarea>
-      </div>
-
-      <div class="mt-3 flex items-center gap-3">
-        <button id="btnUploadSingle" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">立即发布</button>
-        <button id="btnClearSingle" class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">清空表单</button>
-        <span id="singleStatus" class="text-sm text-gray-600"></span>
-      </div>
-
-      <pre id="singleResult" class="bg-gray-100 text-xs p-3 rounded mt-4 overflow-auto max-h-80"></pre>
-    </div>
-
-    <!-- 批量上传模块（保持不变） -->
-    <div class="bg-white rounded-2xl shadow p-4">
-      <h2 class="font-semibold text-lg mb-2">📦 批量创建/更新商品（/v3/product/import）</h2>
-      <div class="flex items-center gap-3 mb-3">
-        <button id="btnAddRow" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">+ 新增一行</button>
-        <button id="btnClearRows" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">清空所有行</button>
-        <button id="btnUploadBatch" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">🚀 批量上传</button>
-        <span id="batchStatus" class="text-sm text-gray-600"></span>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm border border-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="border px-2 py-2">#</th>
-              <th class="border px-2 py-2">Offer ID</th>
-              <th class="border px-2 py-2">标题</th>
-              <th class="border px-2 py-2">价格</th>
-              <th class="border px-2 py-2">币种</th>
-              <th class="border px-2 py-2">条码</th>
-              <th class="border px-2 py-2">长×宽×高(cm)</th>
-              <th class="border px-2 py-2">重量(kg)</th>
-              <th class="border px-2 py-2">主图</th>
-              <th class="border px-2 py-2">更多图片</th>
-              <th class="border px-2 py-2">操作</th>
-            </tr>
-          </thead>
-          <tbody id="batchTbody"></tbody>
-        </table>
-      </div>
-      <pre id="batchResult" class="bg-gray-100 text-xs p-3 rounded mt-4 overflow-auto max-h-80"></pre>
-    </div>
   </div>
 
   <script>
-    // --- 通用代理调用 ---
+    // ========== API代理 ==========
     const ozon = async (endpoint, body = null) => {
       const opts = body
         ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
@@ -135,132 +66,46 @@
       return data.data || data;
     };
 
-    // --- 状态变量 ---
-    let TREE = [], C1 = [], C2 = [], C3 = [];
-    let currentC2 = 0, currentType = 0, ATTR_ALL = [], LANG = 'ZH_HANS';
+    // ========== 全局变量 ==========
+    let TREE = [], C2 = [], C3 = [];
+    let currentC2 = 0, currentType = 0;
+    let ATTR_ALL = [];
+    let LANG = 'ZH_HANS';
 
-    // --- API 验证与类目逻辑（不变） ---
-    const $pingStatus = document.getElementById('pingStatus');
+    // ========== 元素引用 ==========
     const $btnPing = document.getElementById('btnPing');
+    const $pingStatus = document.getElementById('pingStatus');
     const $btnLoadTree = document.getElementById('btnLoadTree');
     const $btnForceReload = document.getElementById('btnForceReload');
     const $c1 = document.getElementById('c1'), $c2 = document.getElementById('c2'), $c3 = document.getElementById('c3');
-    const $tips = document.getElementById('tips'), $attrCards = document.getElementById('attrCards');
-    const $attrLoading = document.getElementById('attrLoading'), $attrList = document.getElementById('attrList');
-    const $counter = document.getElementById('counter'), $attrSearch = document.getElementById('attrSearch');
-    const $onlyRequired = document.getElementById('onlyRequired'), $lang = document.getElementById('lang');
+    const $attrLoading = document.getElementById('attrLoading');
+    const $attrList = document.getElementById('attrList');
+    const $attrCards = document.getElementById('attrCards');
+    const $counter = document.getElementById('counter');
+    const $attrSearch = document.getElementById('attrSearch');
+    const $onlyRequired = document.getElementById('onlyRequired');
+    const $tips = document.getElementById('tips');
+    const $lang = document.getElementById('lang');
 
-    // --- 单个上传相关元素 ---
-    const offerId = document.getElementById('offerId');
-    const title = document.getElementById('title');
-    const priceEl = document.getElementById('price');
-    const currency = document.getElementById('currency');
-    const barcode = document.getElementById('barcode');
-    const depth = document.getElementById('depth');
-    const width = document.getElementById('width');
-    const height = document.getElementById('height');
-    const weight = document.getElementById('weight');
-    const primaryImage = document.getElementById('primaryImage');
-    const moreImages = document.getElementById('moreImages');
-    const singleDesc = document.getElementById('singleDesc');
-    const singleStatus = document.getElementById('singleStatus');
-    const singleResult = document.getElementById('singleResult');
+    $lang.onchange = () => (LANG = $lang.value);
 
-    // --- 批量上传相关元素 ---
-    const batchStatus = document.getElementById('batchStatus');
-    const batchResult = document.getElementById('batchResult');
-    const batchTbody = document.getElementById('batchTbody');
-    let batchRowCount = 0;
-
-    $lang.addEventListener('change', () => (LANG = $lang.value));
-
-    // --- API 连接检测 ---
-    let apiStatus = { proxy: false, api: false, message: '' };
-    
-    const updateStatus = () => {
-      if (apiStatus.proxy && apiStatus.api) {
-        $pingStatus.textContent = apiStatus.message;
-        $pingStatus.className = 'text-sm text-green-600';
-      } else if (!apiStatus.proxy) {
-        $pingStatus.textContent = apiStatus.message;
-        $pingStatus.className = 'text-sm text-red-600';
-      } else {
-        $pingStatus.textContent = '❌ API 连接异常: ' + apiStatus.message;
-        $pingStatus.className = 'text-sm text-red-600';
-      }
-    };
-
+    // ========== 验证连接 ==========
     $btnPing.onclick = async () => {
       $pingStatus.textContent = '检测中...';
-      $pingStatus.className = 'text-sm text-yellow-600';
-      
-      // 检测代理
       try {
-        const proxyRes = await fetch('/api/ozon-proxy');
-        
-        if (!proxyRes.ok) {
-          throw new Error(`HTTP ${proxyRes.status}: ${proxyRes.statusText}`);
-        }
-        
-        const proxyOk = await proxyRes.json();
-        
-        if (!proxyOk.ok) {
-          const errorMsg = proxyOk.error || proxyOk.msg || '代理返回异常';
-          apiStatus.proxy = false;
-          apiStatus.message = errorMsg.includes('OZON') 
-            ? '❌ 缺少环境变量（OZON_CLIENT_ID 或 OZON_API_KEY）' 
-            : '代理错误: ' + errorMsg;
-          updateStatus();
-          return;
-        }
-        
-        apiStatus.proxy = true;
-        apiStatus.message = proxyOk.msg || '✅ 代理就绪';
+        const ok = await ozon('/v1/description-category/tree', { language: 'RU' });
+        $pingStatus.textContent = `✅ 连接成功 (${ok.result.length} 类)`;
       } catch (e) {
-        apiStatus.proxy = false;
-        const errorMsg = e.message || '未知错误';
-        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('Network')) {
-          apiStatus.message = '❌ 代理服务器无法访问。请检查环境变量配置（OZON_CLIENT_ID 和 OZON_API_KEY）';
-        } else {
-          apiStatus.message = '代理连接失败: ' + errorMsg;
-        }
-        updateStatus();
-        return;
+        $pingStatus.textContent = '❌ ' + e.message;
       }
-
-      // 检测 API
-      try {
-        const apiOk = await ozon('/v1/description-category/tree', { language: 'RU' });
-        if (apiOk.result && Array.isArray(apiOk.result)) {
-          apiStatus.api = true;
-          apiStatus.message = `✅ 连接正常 (${apiOk.result.length} 个类目)`;
-        } else {
-          apiStatus.api = false;
-          apiStatus.message = 'API 响应格式异常';
-        }
-      } catch (e) {
-        apiStatus.api = false;
-        apiStatus.message = e.message || 'API 请求失败';
-      }
-      
-      updateStatus();
     };
 
-    // 页面加载时自动检测
-    window.addEventListener('load', () => {
-      setTimeout(() => $btnPing.click(), 500);
-    });
-
+    // ========== 类目树加载 ==========
     const fillSelect = (sel, arr, ph) => {
       sel.innerHTML = `<option value="">${ph}</option>` + arr.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
     };
 
     $btnLoadTree.onclick = async () => {
-      if (!apiStatus.api || !apiStatus.proxy) {
-        alert('❌ API 未连接，请先点击"验证 API 连接"按钮！');
-        return;
-      }
-      
       $tips.textContent = '正在加载类目...';
       const cacheKey = 'OZON_TREE_' + LANG;
       const cached = localStorage.getItem(cacheKey);
@@ -276,204 +121,98 @@
         localStorage.setItem(cacheKey, JSON.stringify(TREE));
         fillSelect($c1, TREE.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })), '一级类目');
         $tips.textContent = '✅ 类目树加载成功';
-      } catch (e) { $tips.textContent = '❌ 加载失败：' + e.message; }
+      } catch (e) {
+        $tips.textContent = '❌ 加载失败：' + e.message;
+      }
     };
 
-    $btnForceReload.onclick = () => { localStorage.removeItem('OZON_TREE_' + LANG); alert('缓存已清除'); };
-    $c1.onchange = () => { const n = TREE.find(x => x.description_category_id == $c1.value); C2 = n?.children?.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })) || []; fillSelect($c2, C2, '二级类目'); fillSelect($c3, [], '三级类型'); };
-    $c2.onchange = () => { const n = C2.find(x => x.id == $c2.value); C3 = n?.children?.map(t => ({ id: t.type_id, name: t.type_name })) || []; fillSelect($c3, C3, '三级类型'); currentC2 = Number($c2.value); };
-    $c3.onchange = () => { currentType = Number($c3.value); if (currentC2 && currentType) loadAttrs(); };
+    $btnForceReload.onclick = () => {
+      localStorage.removeItem('OZON_TREE_' + LANG);
+      alert('缓存已清除');
+    };
 
-    // --- 属性渲染（不变） ---
+    $c1.onchange = () => {
+      const n = TREE.find(x => x.description_category_id == $c1.value);
+      C2 = n?.children?.map(c => ({ id: c.description_category_id, name: c.category_name, children: c.children })) || [];
+      fillSelect($c2, C2, '二级类目');
+      fillSelect($c3, [], '三级类型');
+    };
+    $c2.onchange = () => {
+      const n = C2.find(x => x.id == $c2.value);
+      C3 = n?.children?.map(t => ({ id: t.type_id, name: t.type_name })) || [];
+      fillSelect($c3, C3, '三级类型');
+      currentC2 = Number($c2.value);
+    };
+    $c3.onchange = () => {
+      currentType = Number($c3.value);
+      if (currentC2 && currentType) loadAttrs();
+    };
+
+    // ========== 属性加载与渲染 ==========
     async function loadAttrs() {
       try {
         $attrLoading.textContent = '获取属性中...';
         const r = await ozon('/v1/description-category/attribute', { description_category_id: currentC2, type_id: currentType, language: LANG });
         ATTR_ALL = r.result || [];
         ATTR_ALL.sort((a, b) => Number(b.is_required) - Number(a.is_required));
+        await loadDicts();
         renderAttrs();
         $attrLoading.classList.add('hidden');
         $attrList.classList.remove('hidden');
         $tips.textContent = `✅ 已加载 ${ATTR_ALL.length} 条属性`;
-      } catch (e) { $attrLoading.textContent = '❌ ' + e.message; }
+      } catch (e) {
+        $attrLoading.textContent = '❌ ' + e.message;
+      }
+    }
+
+    async function loadDicts() {
+      for (const a of ATTR_ALL) {
+        if (a.dictionary_id > 0) {
+          try {
+            const dict = await ozon('/v1/description-category/attribute/values', {
+              attribute_id: a.id, description_category_id: currentC2, type_id: currentType, limit: 2000, language: LANG
+            });
+            a._dict = dict.result || [];
+          } catch {
+            a._dict = [];
+          }
+        }
+      }
     }
 
     const renderAttrs = () => {
-      const onlyReq = $onlyRequired.checked, kw = ($attrSearch.value || '').toLowerCase();
+      const onlyReq = $onlyRequired.checked;
+      const kw = ($attrSearch.value || '').toLowerCase();
       const list = ATTR_ALL.filter(a => (!onlyReq || a.is_required) && (!kw || a.name.toLowerCase().includes(kw)));
       $counter.textContent = `显示 ${list.length} / ${ATTR_ALL.length}`;
-      $attrCards.innerHTML = list.map(a => {
-        const hasDict = a.dictionary || (a.values && a.values.length > 0);
-        let inputField = '';
-        
-        if (hasDict) {
-          // 显示下拉框
-          const dictValues = a.dictionary || a.values || [];
-          const options = '<option value="">请选择...</option>' + 
-            dictValues.map(v => {
-              const value = v.value || v;
-              const label = v.name || v.value || v;
-              return `<option value="${value}">${label}</option>`;
-            }).join('');
-          inputField = `<select id="in-${a.id}" class="mt-2 w-full border rounded px-2 py-1 text-sm">${options}</select>`;
-        } else {
-          // 显示文本输入框
-          inputField = `<input id="in-${a.id}" class="mt-2 w-full border rounded px-2 py-1 text-sm" placeholder="请输入属性值..." />`;
-        }
-        
-        return `
-        <div class="border rounded p-3 ${a.is_required ? 'border-red-300' : 'border-gray-200'}">
+      $attrCards.innerHTML = '';
+
+      for (const a of list) {
+        const div = document.createElement('div');
+        div.className = 'border rounded p-3 ' + (a.is_required ? 'border-red-300' : 'border-gray-200');
+        div.innerHTML = `
           <div class="flex justify-between">
-            <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''} ${hasDict ? '<span class="text-blue-600 text-xs">[字典]</span>' : ''}</div>
+            <div class="font-medium">${a.name} ${a.is_required ? '<span class="text-red-600">(必填)</span>' : ''}</div>
             <div class="text-xs text-gray-500">ID:${a.id}</div>
           </div>
-          ${inputField}
-        </div>`;
-      }).join('');
-    };
-    $onlyRequired.onchange = renderAttrs; $attrSearch.oninput = renderAttrs;
-
-    // --- 单个商品上传 ---
-    document.getElementById('btnUploadSingle').onclick = async () => {
-      if (!apiStatus.api || !apiStatus.proxy) {
-        alert('❌ API 未连接，请先点击"验证 API 连接"按钮！');
-        return;
-      }
-      
-      try {
-        const offer_id = offerId.value.trim(), name = title.value.trim(), price = Number(priceEl.value || 0);
-        if (!offer_id || !name || !price) return alert('Offer ID、标题、价格为必填！');
-        if (!currentC2) return alert('请先选择二级类目！');
-        
-        const item = {
-          offer_id, name, category_id: currentC2, description: singleDesc.value || '',
-          price, currency_code: currency.value,
-          barcode: barcode.value.trim() || undefined,
-          depth: depth.value ? Number(depth.value) : undefined,
-          width: width.value ? Number(width.value) : undefined,
-          height: height.value ? Number(height.value) : undefined,
-          dimension_unit: 'cm',
-          weight: weight.value ? Number(weight.value) : undefined,
-          weight_unit: 'kg',
-          primary_image: primaryImage.value.trim() || undefined,
-          images: (primaryImage.value.trim() ? [primaryImage.value.trim()] : []).concat(
-            (moreImages.value || '').split(/\n/).map(s => s.trim()).filter(Boolean)
-          ).slice(0, 30).map(u => ({ file_name: u })),
-          attributes: ATTR_ALL.map(a => {
-            const val = document.getElementById('in-' + a.id)?.value?.trim();
-            return val ? { attribute_id: a.id, values: [{ value: val }] } : null;
-          }).filter(Boolean)
-        };
-        
-        const resp = await ozon('/v3/product/import', { items: [item] });
-        singleStatus.textContent = '✅ 上传成功';
-        singleResult.textContent = JSON.stringify(resp, null, 2);
-      } catch (e) {
-        singleStatus.textContent = '❌ ' + e.message;
-        singleResult.textContent = e.message;
+          <div class="text-xs text-gray-500 mt-1">${a.description || ''}</div>
+          <div class="mt-2">
+            ${
+              a._dict && a._dict.length
+                ? `<input list="d-${a.id}" id="in-${a.id}" class="w-full border rounded px-2 py-1 text-sm" placeholder="输入或选择...">
+                   <datalist id="d-${a.id}">
+                     ${a._dict.map(v => `<option value="${v.value}"></option>`).join('')}
+                   </datalist>`
+                : `<input id="in-${a.id}" class="w-full border rounded px-2 py-1 text-sm" placeholder="请输入...">`
+            }
+          </div>
+        `;
+        $attrCards.appendChild(div);
       }
     };
 
-    // --- 清空单个表单 ---
-    document.getElementById('btnClearSingle').onclick = () => {
-      offerId.value = '';
-      title.value = '';
-      priceEl.value = '';
-      barcode.value = '';
-      depth.value = '';
-      width.value = '';
-      height.value = '';
-      weight.value = '';
-      primaryImage.value = '';
-      moreImages.value = '';
-      singleDesc.value = '';
-      singleStatus.textContent = '';
-      singleResult.textContent = '';
-      ATTR_ALL.forEach(a => {
-        const inp = document.getElementById('in-' + a.id);
-        if (inp) inp.value = '';
-      });
-    };
-
-    // --- 批量上传逻辑 ---
-    const createBatchRow = () => {
-      const id = ++batchRowCount;
-      const row = batchTbody.insertRow();
-      row.innerHTML = `
-        <td class="border px-2 py-2">${id}</td>
-        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="Offer ID" /></td>
-        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="标题" /></td>
-        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="number" placeholder="价格" /></td>
-        <td class="border px-2 py-2"><select class="w-full px-1 py-1 border border-gray-300 rounded"><option value="RUB">RUB</option><option value="CNY">CNY</option><option value="USD">USD</option></select></td>
-        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="条码" /></td>
-        <td class="border px-2 py-2"><input class="w-1/3 px-1 py-1 border border-gray-300 rounded" type="number" placeholder="长" /><input class="w-1/3 px-1 py-1 border border-gray-300 rounded" type="number" placeholder="宽" /><input class="w-1/3 px-1 py-1 border border-gray-300 rounded" type="number" placeholder="高" /></td>
-        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="number" placeholder="重量" /></td>
-        <td class="border px-2 py-2"><input class="w-full px-1 py-1 border border-gray-300 rounded" type="text" placeholder="主图URL" /></td>
-        <td class="border px-2 py-2"><textarea class="w-full px-1 py-1 border border-gray-300 rounded text-xs" placeholder="多图URL&#10;每行一条" rows="2"></textarea></td>
-        <td class="border px-2 py-2"><button class="text-red-600 hover:underline" onclick="this.closest('tr').remove()">删除</button></td>
-      `;
-    };
-
-    document.getElementById('btnAddRow').onclick = createBatchRow;
-    document.getElementById('btnClearRows').onclick = () => { batchTbody.innerHTML = ''; batchRowCount = 0; batchStatus.textContent = ''; batchResult.textContent = ''; };
-
-    document.getElementById('btnUploadBatch').onclick = async () => {
-      if (!apiStatus.api || !apiStatus.proxy) {
-        alert('❌ API 未连接，请先点击"验证 API 连接"按钮！');
-        return;
-      }
-      
-      if (!currentC2) return alert('请先选择二级类目！');
-      
-      const rows = batchTbody.querySelectorAll('tr');
-      if (rows.length === 0) return alert('请至少添加一行商品！');
-      
-      try {
-        batchStatus.textContent = '上传中...';
-        const items = Array.from(rows).map(row => {
-          const cells = row.querySelectorAll('input, select, textarea');
-          const fields = Array.from(cells);
-          const offer_id = fields[0].value.trim();
-          const name = fields[1].value.trim();
-          const price = Number(fields[2].value || 0);
-          if (!offer_id || !name || !price) return null;
-          
-          const imgUrls = fields[8].value ? [fields[8].value] : [];
-          const moreImgs = (fields[9].value || '').split(/\n/).map(s => s.trim()).filter(Boolean);
-          
-          return {
-            offer_id,
-            name,
-            category_id: currentC2,
-            description: '',
-            price,
-            currency_code: fields[3].value,
-            barcode: fields[4].value.trim() || undefined,
-            depth: fields[5].value ? Number(fields[5].value) : undefined,
-            width: fields[6].value ? Number(fields[6].value) : undefined,
-            height: fields[7].value ? Number(fields[7].value) : undefined,
-            dimension_unit: 'cm',
-            weight: fields[10].value ? Number(fields[10].value) : undefined,
-            weight_unit: 'kg',
-            primary_image: fields[8].value.trim() || undefined,
-            images: imgUrls.concat(moreImgs).slice(0, 30).map(u => ({ file_name: u })),
-            attributes: []
-          };
-        }).filter(Boolean);
-        
-        if (items.length === 0) return alert('没有有效的商品数据！');
-        
-        const resp = await ozon('/v3/product/import', { items });
-        batchStatus.textContent = `✅ 成功上传 ${items.length} 个商品`;
-        batchResult.textContent = JSON.stringify(resp, null, 2);
-      } catch (e) {
-        batchStatus.textContent = '❌ ' + e.message;
-        batchResult.textContent = e.message;
-      }
-    };
-
-    // 初始化添加一行
-    createBatchRow();
+    $attrSearch.oninput = renderAttrs;
+    $onlyRequired.onchange = renderAttrs;
   </script>
 </body>
 </html>
