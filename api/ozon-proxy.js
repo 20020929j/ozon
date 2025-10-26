@@ -22,7 +22,14 @@ export default async function handler(req, res) {
     }
 
     const url = `https://api-seller.ozon.ru${endpoint}`;
-    const data = req.body ? JSON.parse(req.body) : {};
+
+    // ✅ 修复点：确保 body 永远能被正确解析
+    let data = {};
+    try {
+      data = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    } catch {
+      data = {};
+    }
 
     const ozonRes = await fetch(url, {
       method: 'POST',
@@ -34,13 +41,17 @@ export default async function handler(req, res) {
       body: JSON.stringify(data)
     });
 
-    const result = await ozonRes.json();
+    const result = await ozonRes.json().catch(() => ({}));
+
     res.status(ozonRes.status).json({
       ok: ozonRes.ok,
       status: ozonRes.status,
       data: result
     });
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({
+      ok: false,
+      error: err.message || '服务器内部错误'
+    });
   }
 }
